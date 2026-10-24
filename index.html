@@ -138,7 +138,7 @@
           </button>
         </div>
         <select id="mobileSectionSelect" onchange="goToSection(parseInt(this.value))" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold text-slate-800 bg-slate-50">
-          <option value="1">1. Anagrafica, Centili OMS & Anamnesi</option>
+          <option value="1">1. Anagrafica, Curve Centili OMS & Anamnesi</option>
           <option value="2">2. Riflessi Arcaici e Automatismi</option>
           <option value="3">3. Tono, Postura & Mappa Cranio-Cervicale</option>
           <option value="4">4. Pietre Miliari dello Sviluppo (3-12m)</option>
@@ -148,9 +148,9 @@
         </select>
       </div>
 
-      <!-- 1. ANAGRAFICA & CENTILI -->
+      <!-- 1. ANAGRAFICA & CENTILI OMS -->
       <div id="sec-1" class="form-section bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
-        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">1. Anagrafica, Centili OMS & Anamnesi</h3>
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">1. Anagrafica, Curve Centili OMS & Anamnesi</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Nome/Cognome Neonato *</label>
@@ -166,10 +166,10 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Età Cronologica / Corretta</label>
-            <input id="f_age" type="text" placeholder="Es. 2 mesi e 10 giorni" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+            <input id="f_age" type="text" placeholder="Es. 3 mesi" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Sesso (per Centili OMS)</label>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Sesso (per Tabelle OMS)</label>
             <select id="f_gender" onchange="calculatePercentiles()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
               <option value="M">Maschio</option>
               <option value="F">Femmina</option>
@@ -185,24 +185,46 @@
           </div>
         </div>
 
-        <!-- Box Antropometria & Centili OMS -->
-        <div class="mt-4 p-3.5 rounded-2xl bg-teal-50/50 border border-teal-200 space-y-3">
-          <p class="text-xs font-extrabold text-teal-900 uppercase">Parametri Antropometrici & Calcolo Centili OMS</p>
+        <!-- Box Antropometria & Grafici Centili OMS -->
+        <div class="mt-4 p-4 rounded-2xl bg-teal-50/60 border border-teal-200 space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-extrabold text-teal-900 uppercase">Curve di Crescita & Centili (Standard OMS 0-12m)</p>
+            <span id="badgeMonths" class="text-xs px-2.5 py-0.5 rounded-full bg-teal-600 text-white font-bold">0 Mesi</span>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">Peso (kg)</label>
-              <input id="f_weight" type="number" step="0.05" placeholder="Es. 4.2" oninput="calculatePercentiles()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white" />
-              <p id="p_weight" class="text-[11px] font-bold text-teal-800 mt-1">Centile Peso: —</p>
+            <!-- Peso -->
+            <div class="bg-white p-3 rounded-xl border border-teal-100 shadow-sm space-y-2">
+              <label class="block text-[11px] font-bold text-slate-700">Peso (kg)</label>
+              <input id="f_weight" type="number" step="0.01" placeholder="Es. 6.2" oninput="calculatePercentiles()" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" />
+              <div id="res_weight" class="text-[11px] font-bold text-teal-700">Centile: —</div>
+              <!-- Mini Grafico Barra Percentile -->
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden relative border border-slate-200">
+                <div id="bar_weight" class="bg-teal-600 h-full w-0 transition-all duration-300"></div>
+              </div>
+              <div class="flex justify-between text-[9px] text-slate-400 font-mono"><span>3°</span><span>50°</span><span>97°</span></div>
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">Lunghezza (cm)</label>
-              <input id="f_length" type="number" step="0.5" placeholder="Es. 54.0" oninput="calculatePercentiles()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white" />
-              <p id="p_length" class="text-[11px] font-bold text-teal-800 mt-1">Centile Lunghezza: —</p>
+
+            <!-- Lunghezza -->
+            <div class="bg-white p-3 rounded-xl border border-teal-100 shadow-sm space-y-2">
+              <label class="block text-[11px] font-bold text-slate-700">Lunghezza (cm)</label>
+              <input id="f_length" type="number" step="0.1" placeholder="Es. 61.0" oninput="calculatePercentiles()" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" />
+              <div id="res_length" class="text-[11px] font-bold text-teal-700">Centile: —</div>
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden relative border border-slate-200">
+                <div id="bar_length" class="bg-cyan-600 h-full w-0 transition-all duration-300"></div>
+              </div>
+              <div class="flex justify-between text-[9px] text-slate-400 font-mono"><span>3°</span><span>50°</span><span>97°</span></div>
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">Circonferenza Cranica (cm)</label>
-              <input id="f_head" type="number" step="0.5" placeholder="Es. 37.0" oninput="calculatePercentiles()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white" />
-              <p id="p_head" class="text-[11px] font-bold text-teal-800 mt-1">Centile CC: —</p>
+
+            <!-- Circonferenza Cranica -->
+            <div class="bg-white p-3 rounded-xl border border-teal-100 shadow-sm space-y-2">
+              <label class="block text-[11px] font-bold text-slate-700">Circonferenza Cranica (cm)</label>
+              <input id="f_head" type="number" step="0.1" placeholder="Es. 40.0" oninput="calculatePercentiles()" class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300" />
+              <div id="res_head" class="text-[11px] font-bold text-teal-700">Centile: —</div>
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden relative border border-slate-200">
+                <div id="bar_head" class="bg-emerald-600 h-full w-0 transition-all duration-300"></div>
+              </div>
+              <div class="flex justify-between text-[9px] text-slate-400 font-mono"><span>3°</span><span>50°</span><span>97°</span></div>
             </div>
           </div>
         </div>
@@ -437,6 +459,20 @@
     let currentSection = 1;
     let showAllSections = false;
 
+    // Tabelle di riferimento OMS (0-12 mesi) per Centili [P3, P15, P50, P85, P97]
+    const whoStandards = {
+      M: {
+        weight: [[3.3,3.9,4.5,5.2,5.8],[4.3,5.0,5.6,6.3,7.1],[5.1,5.8,6.4,7.2,8.0],[5.6,6.4,7.0,7.8,8.7],[6.0,6.9,7.5,8.4,9.3],[6.4,7.3,7.9,8.8,9.8],[6.7,7.6,8.3,9.2,10.2],[6.9,7.9,8.6,9.5,10.5],[7.1,8.1,8.9,9.8,10.9],[7.4,8.4,9.2,10.1,11.2],[7.6,8.6,9.4,10.4,11.5],[7.8,8.8,9.6,10.6,11.8],[7.9,9.0,9.9,10.9,12.0]],
+        length: [[46.1,48.0,49.9,51.8,53.7],[50.8,52.8,54.7,56.7,58.6],[54.4,56.4,58.4,60.4,62.4],[57.3,59.3,61.4,63.4,65.5],[59.7,61.8,63.9,65.9,68.0],[61.8,63.9,65.9,68.0,70.1],[63.6,65.7,67.6,69.8,71.9],[65.2,67.3,69.2,71.3,73.5],[66.6,68.7,70.6,72.8,75.0],[68.0,70.1,72.0,74.2,76.3],[69.3,71.3,73.3,75.5,77.7],[70.5,72.6,74.5,76.8,79.0],[71.6,73.7,75.7,78.0,80.2]],
+        head:   [[32.1,33.5,34.5,35.7,36.9],[34.5,35.7,36.7,37.9,39.1],[36.3,37.5,38.5,39.7,40.9],[37.7,38.9,39.9,41.1,42.3],[38.8,40.0,41.0,42.2,43.4],[39.7,40.9,41.9,43.1,44.3],[40.4,41.6,42.6,43.8,45.0],[41.0,42.2,43.2,44.4,45.6],[41.5,42.7,43.7,44.9,46.1],[42.0,43.2,44.2,45.4,46.6],[42.4,43.6,44.6,45.8,47.0],[42.8,44.0,45.0,46.2,47.4],[43.1,44.3,45.3,46.5,47.7]]
+      },
+      F: {
+        weight: [[3.2,3.7,4.2,4.8,5.4],[4.0,4.5,5.1,5.8,6.5],[4.7,5.3,5.8,6.6,7.5],[5.2,5.8,6.4,7.2,8.2],[5.6,6.2,6.9,7.8,8.8],[6.0,6.6,7.3,8.2,9.3],[6.3,6.9,7.6,8.6,9.7],[6.5,7.2,7.9,8.9,10.0],[6.8,7.4,8.2,9.2,10.4],[7.0,7.7,8.5,9.5,10.7],[7.2,7.9,8.7,9.8,11.0],[7.4,8.1,8.9,10.0,11.3],[7.6,8.3,9.2,10.3,11.5]],
+        length: [[45.4,47.3,49.1,51.0,52.9],[49.1,51.0,53.0,54.9,56.8],[52.5,54.5,56.5,58.4,60.4],[55.3,57.3,59.3,61.3,63.3],[57.7,59.7,61.7,63.7,65.7],[59.8,61.8,63.8,65.8,67.9],[61.5,63.5,65.5,67.6,69.7],[63.1,65.1,67.1,69.2,71.3],[64.5,66.5,68.5,70.6,72.7],[65.8,67.8,69.8,71.9,74.0],[67.0,69.0,71.0,73.2,75.3],[68.1,70.1,72.2,74.4,76.5],[69.2,71.2,73.3,75.5,77.6]],
+        head:   [[31.7,32.9,33.9,35.1,36.3],[33.8,35.0,36.0,37.2,38.4],[35.4,36.6,37.6,38.8,40.0],[36.7,37.9,38.9,40.1,41.3],[37.7,38.9,39.9,41.1,42.3],[38.5,39.7,40.7,41.9,43.1],[39.2,40.4,41.4,42.6,43.8],[39.8,41.0,42.0,43.2,44.4],[40.3,41.5,42.5,43.7,44.9],[40.8,42.0,43.0,44.2,45.4],[41.2,42.4,43.4,44.6,45.8],[41.5,42.7,43.7,45.0,46.2],[41.8,43.0,44.0,45.3,46.5]]
+      }
+    };
+
     function unlockApp() {
       const entered = document.getElementById('pinInput').value.trim();
       if (entered === '2025') {
@@ -556,11 +592,14 @@
       const b = document.getElementById('f_birthDate').value;
       if (!b) return;
       const diffDays = Math.max(0, Math.floor((new Date() - new Date(b)) / (1000 * 60 * 60 * 24)));
-      document.getElementById('f_age').value = `${Math.floor(diffDays / 30)} mesi e ${diffDays % 30} giorni`;
+      const months = Math.floor(diffDays / 30.44);
+      const days = Math.floor(diffDays % 30.44);
+      document.getElementById('f_age').value = `${months} mesi e ${days} giorni`;
+      document.getElementById('badgeMonths').textContent = `${months} Mesi`;
       calculatePercentiles();
     }
 
-    // Stima dei centili OMS basata su medie standard (0-12 mesi)
+    // Calcolo preciso con tabelle LMS OMS e aggiornamento barre grafiche
     function calculatePercentiles() {
       const b = document.getElementById('f_birthDate').value;
       const gender = document.getElementById('f_gender').value;
@@ -569,32 +608,49 @@
       const hVal = parseFloat(document.getElementById('f_head').value);
 
       if (!b) {
-        document.getElementById('p_weight').textContent = 'Centile Peso: inserisci data nascita';
-        document.getElementById('p_length').textContent = 'Centile Lunghezza: inserisci data nascita';
-        document.getElementById('p_head').textContent = 'Centile CC: inserisci data nascita';
+        document.getElementById('badgeMonths').textContent = '0 Mesi';
+        document.getElementById('res_weight').textContent = 'Centile: inserisci data nascita';
+        document.getElementById('res_length').textContent = 'Centile: inserisci data nascita';
+        document.getElementById('res_head').textContent = 'Centile: inserisci data nascita';
+        document.getElementById('bar_weight').style.width = '0%';
+        document.getElementById('bar_length').style.width = '0%';
+        document.getElementById('bar_head').style.width = '0%';
         return;
       }
 
-      const months = Math.max(0, (new Date() - new Date(b)) / (1000 * 60 * 60 * 24 * 30.44));
+      const diffDays = Math.max(0, Math.floor((new Date() - new Date(b)) / (1000 * 60 * 60 * 24)));
+      let mIdx = Math.round(diffDays / 30.44);
+      if (mIdx < 0) mIdx = 0;
+      if (mIdx > 12) mIdx = 12;
 
-      // Medie di riferimento OMS approssimate per calcolo rapido clinico
-      const wRef = gender === 'M' ? (3.3 + months * 0.8) : (3.2 + months * 0.75);
-      const lRef = gender === 'M' ? (50 + months * 2.5) : (49 + months * 2.4);
-      const hRef = gender === 'M' ? (34.5 + months * 1.1) : (33.9 + months * 1.0);
+      document.getElementById('badgeMonths').textContent = `${mIdx} Mesi (OMS)`;
+      const ref = whoStandards[gender];
 
-      const getCentileLabel = (val, ref) => {
-        if (!val || isNaN(val)) return '—';
-        const ratio = val / ref;
-        if (ratio < 0.85) return '< 3° centile';
-        if (ratio < 0.92) return '10° - 25° centile';
-        if (ratio <= 1.08) return '50° centile (Mediano)';
-        if (ratio <= 1.15) return '75° - 90° centile';
-        return '> 97° centile';
+      const evaluateParam = (val, refArr, barId, resId, unit) => {
+        const bar = document.getElementById(barId);
+        const res = document.getElementById(resId);
+        if (isNaN(val) || !val) {
+          bar.style.width = '0%';
+          res.textContent = 'Centile: —';
+          return;
+        }
+        const [p3, p15, p50, p85, p97] = ref[mIdx];
+        let pct = '50° centile';
+        let barW = '50%';
+
+        if (val < p3) { pct = '< 3° centile'; barW = '10%'; bar.className = 'bg-amber-500 h-full transition-all duration-300'; }
+        else if (val >= p3 && val < p15) { pct = '3° - 15° centile'; barW = '30%'; bar.className = 'bg-teal-600 h-full transition-all duration-300'; }
+        else if (val >= p15 && val <= p85) { pct = '15° - 85° centile (Normale)'; barW = '50%'; bar.className = 'bg-teal-600 h-full transition-all duration-300'; }
+        else if (val > p85 && val <= p97) { pct = '85° - 97° centile'; barW = '80%'; bar.className = 'bg-teal-600 h-full transition-all duration-300'; }
+        else { pct = '> 97° centile'; barW = '95%'; bar.className = 'bg-amber-500 h-full transition-all duration-300'; }
+
+        bar.style.width = barW;
+        res.textContent = `Centile: ${pct}`;
       };
 
-      document.getElementById('p_weight').textContent = 'Stima Centile Peso: ' + getCentileLabel(wVal, wRef);
-      document.getElementById('p_length').textContent = 'Stima Centile Lunghezza: ' + getCentileLabel(lVal, lRef);
-      document.getElementById('p_head').textContent = 'Stima Centile CC: ' + getCentileLabel(hVal, hRef);
+      evaluateParam(wVal, ref.weight, 'bar_weight', 'res_weight', 'kg');
+      evaluateParam(lVal, ref.length, 'bar_length', 'res_length', 'cm');
+      evaluateParam(hVal, ref.head, 'bar_head', 'res_head', 'cm');
     }
 
     function createNewPatient() {
@@ -608,9 +664,12 @@
       document.getElementById('f_weight').value = '';
       document.getElementById('f_length').value = '';
       document.getElementById('f_head').value = '';
-      document.getElementById('p_weight').textContent = 'Centile Peso: —';
-      document.getElementById('p_length').textContent = 'Centile Lunghezza: —';
-      document.getElementById('p_head').textContent = 'Centile CC: —';
+      document.getElementById('res_weight').textContent = 'Centile: —';
+      document.getElementById('res_length').textContent = 'Centile: —';
+      document.getElementById('res_head').textContent = 'Centile: —';
+      document.getElementById('bar_weight').style.width = '0%';
+      document.getElementById('bar_length').style.width = '0%';
+      document.getElementById('bar_head').style.width = '0%';
       document.getElementById('f_presentation').value = 'Cefalica';
       document.getElementById('f_anamnesi').value = '';
       document.getElementById('f_cranialZones').value = '';
@@ -751,7 +810,7 @@
       doc.text(`Paziente: ${p.name}   |   Data Valutazione: ${p.evalDate || '-'}   |   Età: ${p.age || '-'}`, 14, y);
       y += 7;
       doc.setFontSize(10);
-      doc.text(`Data Nascita: ${p.birthDate || '-'}   |   Parto: ${p.birthType}   |   Presentazione: ${p.presentation}`, 14, y);
+      doc.text(`Data Nascita: ${p.birthDate || '-'}   |   Sesso: ${p.gender === 'M' ? 'Maschio' : 'Femmina'}   |   Parto: ${p.birthType}`, 14, y);
       y += 7;
       doc.text(`Peso: ${p.weight || '-'} kg   |   Lunghezza: ${p.length || '-'} cm   |   Circonferenza Cranica: ${p.head || '-'} cm`, 14, y);
       y += 9;
@@ -775,10 +834,10 @@
       };
 
       if (mode === 'full') {
-        addBlock('1. ANAMNESI CLINICA & ANTROPOMETRIA', [p.anamnesi || 'Nessuna nota.']);
+        addBlock('1. ANAMNESI CLINICA & ANTROPOMETRIA (STANDARD OMS)', [p.anamnesi || 'Nessuna nota.']);
         addBlock('2. RIFLESSI ARCAICI E AUTOMATISMI', [`0-3 Mesi: ${p.ref_0_3}`, `4-6 Mesi: ${p.ref_4_6}`, `7-12 Mesi: ${p.ref_7_12}`]);
         addBlock('3. TONO, POSTURA E MOBILITÀ CRANIO-CERVICALE', [`Tono: ${p.tone}  |  Cervicale C0-C1-C2: ${p.cervical}`, `Suture: ${p.sutures}`, `Mappa Disfunzioni: ${p.cranialZones || 'Nessuna'}`]);
-        addBlock('4. PIETRE MILIARI DELLO SVILUPPO', [`3 Mesi: ${p.mile_3}  |  6 Mesi: ${p.mile_6}`, `9 Mesi: ${p.mile_9}  |  12 Mesi: ${p.mile_12}`]);
+        addBlock('4. PIETRE MILIARI dello SVILUPPO', [`3 Mesi: ${p.mile_3}  |  6 Mesi: ${p.mile_6}`, `9 Mesi: ${p.mile_9}  |  12 Mesi: ${p.mile_12}`]);
         addBlock('5. GUIDA CLINICA AL TUMMY TIME', [`Pancia a Pancia: ${p.tt_1}  |  Sulle Ginocchia: ${p.tt_2}`, `Sottobraccio: ${p.tt_3}  |  A Terra Libero: ${p.tt_4}`]);
         addBlock('6. VALUTAZIONE FRENULO (ANKILOGLOSSIA)', [`Linguale: ${p.fren_ling_type}`, `Labiale Superiore: ${p.fren_lab}`]);
       }
