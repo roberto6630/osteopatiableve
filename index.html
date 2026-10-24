@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- Nome appropriato ed elegante quando salvi l'app sulla schermata Home di iPhone -->
+  <meta name="apple-mobile-web-app-title" content="Bleve NeoCare" />
+  <meta name="application-name" content="Bleve NeoCare" />
+  <title>Bleve NeoCare — Cartella Neuro-Osteopatica Pediatrica</title>
+
+  <!-- Icone dinamiche per iPhone / iPad (aggiornate automaticamente col tuo Logo) -->
+  <link id="appleTouchIcon" rel="apple-touch-icon" sizes="180x180" href="" />
+  <link id="favIcon" rel="icon" type="image/png" href="" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    input, textarea, select { font-size: 16px !important; }
+  </style>
+</head>
+<body class="text-slate-800 pb-40">
+
+  <!-- Input nascosto per caricare il proprio logo PNG/JPG -->
+  <input id="logoFileInput" type="file" accept="image/*" class="hidden" onchange="handleCustomLogoUpload(event)" />
+
+  <!-- SCHERMATA DI BLOCCO PIN -->
+  <div id="pinScreen" class="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center border border-teal-500/30">
+      <div class="w-20 h-20 mx-auto mb-3 rounded-2xl bg-teal-50 flex items-center justify-center shadow-md border border-teal-200 overflow-hidden">
+        <img id="pinLogoImg" class="w-full h-full object-contain p-1" alt="Logo Studio Bleve" />
+      </div>
+      <h1 class="text-xl font-extrabold text-slate-900">Bleve NeoCare</h1>
+      <p class="text-xs font-semibold text-teal-700">Dott. Biagio Bleve D.O. — Osteopatia Pediatrica</p>
+      <p class="text-[11px] text-slate-500 mt-1 mb-5">Registro degli Osteopati d'Italia (ROI n. 1094)<br/>Inserisci il PIN Studio per accedere</p>
+
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="10" placeholder="••••"
+        class="w-full text-center text-2xl tracking-[0.4em] font-bold py-3 px-4 rounded-xl border-2 border-slate-200 focus:border-teal-600 focus:outline-none mb-3"
+        onkeydown="if(event.key==='Enter') unlockApp()" />
+
+      <p id="pinError" class="text-xs text-red-600 font-semibold mb-3 hidden">PIN errato. Riprova.</p>
+
+      <button id="unlockBtn" onclick="unlockApp()" class="w-full py-3.5 bg-teal-700 hover:bg-teal-800 active:scale-[0.99] text-white font-bold rounded-xl shadow-md transition">
+        Accedi allo Studio
+      </button>
+      <p class="text-[11px] text-slate-400 mt-4">Versione 6.0 — Bleve NeoCare MedPro</p>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="bg-gradient-to-r from-teal-900 via-teal-800 to-cyan-900 text-white shadow-md">
+    <div class="max-w-4xl mx-auto px-3 py-3.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="showView('home')">
+        <div class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border-2 border-teal-300 shadow-sm shrink-0 overflow-hidden">
+          <img id="headerLogoImg" class="w-full h-full object-contain p-0.5" alt="Logo" />
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base sm:text-lg tracking-tight">Bleve NeoCare</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400/25 text-emerald-100 border border-emerald-300/40 font-semibold">v6.0 Fix PDF & Icona</span>
+          </div>
+          <p class="text-[11px] text-teal-100 leading-tight">Dott. Biagio Bleve D.O. • Osteopatia Pediatrica & Posturologia • ROI n. 1094</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button onclick="document.getElementById('logoFileInput').click()" class="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-semibold" title="Carica il tuo logo per App, Icona iPhone e PDF">🖼️ Logo</button>
+        <button onclick="showView('home')" class="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-semibold">🏠 Home</button>
+        <button onclick="lockApp()" class="px-2.5 py-1.5 rounded-lg bg-red-500/30 hover:bg-red-500/50 text-xs font-semibold">🔒 Esci</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-3 pt-4">
+
+    <!-- HOME PAGE -->
+    <section id="homeView" class="space-y-4">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <img id="homeCardLogoImg" class="w-12 h-12 rounded-xl border border-slate-200 p-1 object-contain hidden sm:block" alt="Logo Studio" />
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">Archivio Cartelle Cliniche — Bleve NeoCare</h2>
+            <p class="text-xs text-slate-500">Lecce • Corsano • Galatone • Lizzanello — Sincronizzato in tempo reale.</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="createNewPatient()" class="flex-1 sm:flex-initial px-4 py-3 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-sm shadow-sm">
+            ＋ Nuovo Paziente
+          </button>
+          <button onclick="document.getElementById('logoFileInput').click()" class="px-3 py-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-semibold text-xs">
+            🖼️ Imposta Logo (App & PDF)
+          </button>
+          <button onclick="loadPatientsFromCloud()" class="px-3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+            🔄 Aggiorna
+          </button>
+        </div>
+      </div>
+
+      <!-- Info rapida per Icona iPhone -->
+      <div class="bg-teal-50/80 border border-teal-200 rounded-2xl px-3.5 py-2.5 text-[11px] text-teal-900 flex items-center justify-between gap-2">
+        <span>📱 <b>Icona su iPhone ("Bleve NeoCare"):</b> carica prima il tuo logo col tasto <b>"🖼️ Logo"</b>, poi in Safari premi <b>Condividi → Aggiungi alla schermata Home</b>.</span>
+      </div>
+
+      <!-- Ricerca -->
+      <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Cerca Paziente (Nome / Cognome / Note)</label>
+            <input id="searchName" type="text" placeholder="Es. Leonardo Rossi..." oninput="renderPatientArchive()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-teal-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Data Valutazione</label>
+            <input id="searchDate" type="date" onchange="renderPatientArchive()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-teal-600 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <div id="patientListContainer" class="space-y-2.5"></div>
+    </section>
+
+    <!-- SCHEDA PAZIENTE (7 SEZIONI) -->
+    <section id="formView" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <button onclick="showView('home')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+          ← Archivio
+        </button>
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="saveCurrentPatient(true)" class="px-3.5 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs shadow-sm">
+            💾 Salva Scheda
+          </button>
+          <button onclick="generatePDF('full')" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm">
+            📄 Scarica Referto Medico PDF
+          </button>
+          <button onclick="generatePDF('homecare')" class="px-3 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-semibold text-xs shadow-sm">
+            👪 PDF Home Care Genitori
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigatore Sezioni -->
+      <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-600 uppercase">Sezioni Cliniche (1-7)</span>
+          <button id="toggleAllBtn" onclick="toggleShowAllSections()" class="text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
+            Mostra Tutte le 7 Sezioni
+          </button>
+        </div>
+        <select id="mobileSectionSelect" onchange="goToSection(parseInt(this.value))" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold text-slate-800 bg-slate-50">
+          <option value="1">1. Anagrafica, Curve di Crescita OMS & Anamnesi</option>
+          <option value="2">2. Riflessi Arcaici e Automatismi</option>
+          <option value="3">3. Tono, Postura & Mappa Cranio-Cervicale</option>
+          <option value="4">4. Pietre Miliari dello Sviluppo (3-12m)</option>
+          <option value="5">5. Guida Clinica al Tummy Time</option>
+          <option value="6">6. Valutazione Frenulo (Ankiloglossia)</option>
+          <option value="7">7. Indicazioni Home Care per i Genitori</option>
+        </select>
+      </div>
+
+      <!-- 1. ANAGRAFICA & GRAFICI OMS -->
+      <div id="sec-1" class="form-section bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">1. Anagrafica, Curve di Crescita OMS & Anamnesi</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Nome/Cognome Neonato *</label>
+            <input id="f_name" type="text" placeholder="Es. Leonardo Rossi" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Data Valutazione</label>
+            <input id="f_evalDate" type="date" onchange="autoCalcAge()" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Data di Nascita *</label>
+            <input id="f_birthDate" type="date" onchange="autoCalcAge()" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Età Cronologica Calcolata</label>
+            <input id="f_age" type="text" placeholder="Si calcola con la data di nascita" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-slate-50" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Sesso (Cambia Curve OMS)</label>
+            <select id="f_gender" onchange="updateGrowthCharts()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold">
+              <option value="M">👦 Maschio (Curve OMS Blu)</option>
+              <option value="F">👧 Femmina (Curve OMS Rosa)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tipo di Parto & Presentazione</label>
+            <div class="grid grid-cols-2 gap-2">
+              <select id="f_birthType" class="w-full px-2 py-2 rounded-xl border border-slate-300 bg-white">
+                <option value="Fisiologico">Fisiologico</option>
+                <option value="Cesareo">Cesareo</option>
+                <option value="Ventosa/Forcipe">Ventosa/Forcipe</option>
+              </select>
+              <select id="f_presentation" class="w-full px-2 py-2 rounded-xl border border-slate-300 bg-white">
+                <option value="Cefalica">Cefalica</option>
+                <option value="Podalica">Podalica</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANNELLO GRAFICI CENTILI OMS -->
+        <div class="p-4 rounded-2xl bg-slate-50 border-2 border-teal-500/30 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+            <div>
+              <h4 class="text-xs font-extrabold uppercase text-teal-900">📊 Calcolatore Centili & Curve OMS (0-12 Mesi)</h4>
+              <p class="text-[11px] text-slate-500">I 3 grafici completi e i centili vengono disegnati in alta risoluzione sul Referto PDF.</p>
+            </div>
+            <span id="badgeAgeMonths" class="text-xs px-3 py-1 rounded-full bg-teal-700 text-white font-bold">Età: 0.0 mesi</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <label class="block text-xs font-bold text-slate-700 mb-1">⚖️ Peso (kg)</label>
+              <input id="f_weight" type="number" step="0.01" placeholder="Es. 5.80" oninput="updateGrowthCharts()" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-slate-900" />
+              <div id="stat_weight" class="mt-2 text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1.5 rounded-lg border border-teal-100">Centile: —</div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <label class="block text-xs font-bold text-slate-700 mb-1">📏 Lunghezza (cm)</label>
+              <input id="f_length" type="number" step="0.1" placeholder="Es. 60.5" oninput="updateGrowthCharts()" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-slate-900" />
+              <div id="stat_length" class="mt-2 text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1.5 rounded-lg border border-teal-100">Centile: —</div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <label class="block text-xs font-bold text-slate-700 mb-1">👶 Circonferenza Cranica (cm)</label>
+              <input id="f_head" type="number" step="0.1" placeholder="Es. 39.5" oninput="updateGrowthCharts()" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-slate-900" />
+              <div id="stat_head" class="mt-2 text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1.5 rounded-lg border border-teal-100">Centile: —</div>
+            </div>
+          </div>
+
+          <div class="flex gap-1.5 bg-slate-200/70 p-1 rounded-xl">
+            <button type="button" id="tabChart_weight" onclick="switchChartTab('weight')" class="flex-1 py-2 rounded-lg text-xs font-extrabold bg-white text-teal-800 shadow-sm">Curva Peso</button>
+            <button type="button" id="tabChart_length" onclick="switchChartTab('length')" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-600">Curva Lunghezza</button>
+            <button type="button" id="tabChart_head" onclick="switchChartTab('head')" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-600">Curva Cranio (CC)</button>
+          </div>
+
+          <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-inner">
+            <div id="chartTitleBox" class="text-xs font-extrabold text-center text-slate-700 mb-1">Curva OMS Peso per Età (0 - 12 Mesi)</div>
+            <div id="svgChartContainer" class="w-full overflow-hidden"></div>
+            <div class="flex flex-wrap items-center justify-center gap-3 mt-2 text-[10px] text-slate-500 font-semibold">
+              <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-red-400 inline-block"></span> 97° / 3° Centile</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-amber-500 inline-block"></span> 85° / 15° Centile</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-1 bg-emerald-600 inline-block"></span> 50° Mediana OMS</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span> Punto Neonato</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Anamnesi Clinica / Note Osteopatiche</label>
+          <textarea id="f_anamnesi" rows="3" placeholder="Note sul parto, suzione, sonno, plagiocefalia, coliche..." class="w-full p-3 rounded-xl border border-slate-300"></textarea>
+        </div>
+      </div>
+
+      <!-- 2. RIFLESSI ARCAICI -->
+      <div id="sec-2" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">2. Riflessi Arcaici e Automatismi</h3>
+        <div class="space-y-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">0-3 MESI (Moro, Suzione, Marcia, Prensione)</p>
+            <select id="f_ref_0_3" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Presente / Simmetrico">Presente / Simmetrico</option>
+              <option value="Asimmetrico (R/L)">Asimmetrico (R/L)</option>
+              <option value="Assente / Debole">Assente / Debole</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">4-6 MESI (Integrazione & RTAC)</p>
+            <select id="f_ref_4_6" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Scomparsa fisiologica">Scomparsa fisiologica</option>
+              <option value="Persistenza anomala">Persistenza anomala</option>
+              <option value="RTAC Presente">RTAC Presente</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">7-12 MESI (Paracadute)</p>
+            <select id="f_ref_7_12" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Paracadute Presente">Paracadute Presente</option>
+              <option value="Paracadute Assente">Paracadute Assente</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. TONO, POSTURA E MAPPA CRANICA -->
+      <div id="sec-3" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">3. Tono, Postura e Mobilità Cranio-Cervicale</h3>
+        <div class="p-3 rounded-2xl bg-teal-50/60 border border-teal-200 text-center">
+          <p class="text-xs font-bold text-teal-900 mb-1">Mappa Cranio-Cervicale Interattiva (Tocca le zone: verrà stampata sul PDF)</p>
+          <svg viewBox="0 0 260 225" class="w-56 h-48 mx-auto select-none">
+            <ellipse cx="130" cy="100" rx="72" ry="82" fill="#ffffff" stroke="#0f766e" stroke-width="3"/>
+            <polygon onclick="toggleCranialZone('Fontanella Ant.')" points="130,62 144,80 130,98 116,80" fill="#cbd5e1" stroke="#0f766e" stroke-width="2" class="cursor-pointer"/>
+            <polygon onclick="toggleCranialZone('Fontanella Post.')" points="130,138 140,152 130,164 120,152" fill="#cbd5e1" stroke="#0f766e" stroke-width="2" class="cursor-pointer"/>
+            <circle onclick="toggleCranialZone('Plagiocefalia DX')" cx="162" cy="156" r="14" fill="#e2e8f0" stroke="#0f766e" stroke-width="1.8" class="cursor-pointer"/>
+            <circle onclick="toggleCranialZone('Plagiocefalia SX')" cx="98" cy="156" r="14" fill="#e2e8f0" stroke="#0f766e" stroke-width="1.8" class="cursor-pointer"/>
+            <rect onclick="toggleCranialZone('Restrizione C0-C1-C2')" x="98" y="190" width="64" height="22" rx="6" fill="#e2e8f0" stroke="#0f766e" stroke-width="1.8" class="cursor-pointer"/>
+          </svg>
+          <input id="f_cranialZones" type="text" placeholder="Zone selezionate..." class="w-full mt-2 px-3 py-1.5 text-xs rounded-lg border border-teal-300 bg-white" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tono</label>
+            <select id="f_tone" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Normotono">Normotono</option>
+              <option value="Ipertono assiale">Ipertono assiale</option>
+              <option value="Ipotono/Head lag">Ipotono/Head lag</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Mobilità C0-C1-C2</label>
+            <select id="f_cervical" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Libera e simmetrica">Libera e simmetrica</option>
+              <option value="Restrizione a DX">Restrizione a DX</option>
+              <option value="Restrizione a SX">Restrizione a SX</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Suture</label>
+            <select id="f_sutures" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Suture libere/normotese">Suture libere/normotese</option>
+              <option value="Sovrapposizione suture">Sovrapposizione suture</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. PIETRE MILIARI -->
+      <div id="sec-4" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">4. Pietre Miliari dello Sviluppo</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">3 MESI</p>
+            <select id="f_mile_3" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">6 MESI</p>
+            <select id="f_mile_6" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">9 MESI</p>
+            <select id="f_mile_9" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">12 MESI</p>
+            <select id="f_mile_12" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. TUMMY TIME -->
+      <div id="sec-5" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">5. Guida Clinica al Tummy Time</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Pancia a Pancia</p>
+            <select id="f_tt_1" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Tollerato">Tollerato</option>
+              <option value="Fatica / Pianto">Fatica / Pianto</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Sulle Ginocchia</p>
+            <select id="f_tt_2" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Tollerato">Tollerato</option>
+              <option value="Fatica/Pianto">Fatica/Pianto</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Sottobraccio / Rullo</p>
+            <select id="f_tt_3" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Tollerato">Tollerato</option>
+              <option value="Fatica">Fatica</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">A Terra Libero</p>
+            <select id="f_tt_4" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Spinta simmetrica">Spinta simmetrica</option>
+              <option value="Deficit spinta">Deficit spinta</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. FRENULO -->
+      <div id="sec-6" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">6. Valutazione Frenulo (Ankiloglossia)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Frenulo Linguale</p>
+            <select id="f_fren_ling_type" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Fisiologico">Fisiologico</option>
+              <option value="Tipo I / II (Anteriore)">Tipo I / II (Anteriore)</option>
+              <option value="Tipo III / IV (Posteriore/Sottomucoso)">Tipo III / IV (Posteriore/Sottomucoso)</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Frenulo Labiale Superiore</p>
+            <select id="f_fren_lab" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Fisiologico">Fisiologico</option>
+              <option value="Inserzione bassa / Grado III-IV">Inserzione bassa / Grado III-IV</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. HOME CARE -->
+      <div id="sec-7" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">7. Indicazioni Home Care</h3>
+        <div class="space-y-2.5">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <input id="f_hc_1" type="checkbox" checked class="mt-1 w-5 h-5 accent-teal-600 rounded" />
+            <div class="text-xs"><span class="font-bold text-slate-900">Rilascio Addominale & Diaframmatico (Coliche / Reflusso)</span></div>
+          </label>
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <input id="f_hc_2" type="checkbox" checked class="mt-1 w-5 h-5 accent-teal-600 rounded" />
+            <div class="text-xs"><span class="font-bold text-slate-900">Allineamento Visivo, Tummy Time & Rotazione Cervicale Attiva</span></div>
+          </label>
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <input id="f_hc_3" type="checkbox" class="mt-1 w-5 h-5 accent-teal-600 rounded" />
+            <div class="text-xs"><span class="font-bold text-slate-900">Decompressione Sacrale e Mobilizzazione Bacino</span></div>
+          </label>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Frequenza e Note Personalizzate per i Genitori</label>
+            <input id="f_hc_notes" type="text" placeholder="Es. Eseguire 3 volte al giorno prima dei pasti..." class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Salvataggio -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex gap-2">
+          <button onclick="prevSection()" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-xs text-slate-700">← Prec.</button>
+          <button onclick="nextSection()" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-xs text-slate-700">Succ. →</button>
+        </div>
+        <button onclick="saveCurrentPatient(true)" class="px-5 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-sm shadow">
+          💾 Salva sul Cloud
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SUPABASE_URL = 'https://jwsplfaqwnbzlniltinr.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Mj75d7zViRfCoNiGsJ3mQQ_pdgNAre2';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let sessionPin = sessionStorage.getItem('bleve_session_pin') || '';
+    let patients = [];
+    let currentPatientId = null;
+    let currentSection = 1;
+    let showAllSections = false;
+    let activeChartTab = 'weight';
+    let studioLogoDataUrl = localStorage.getItem('bleve_custom_logo') || '';
+
+    // Genera lo stemma predefinito ad alta risoluzione
+    function generateDefaultEmblemDataUrl() {
+      const c = document.createElement('canvas');
+      c.width = 360;
+      c.height = 360;
+      const ctx = c.getContext('2d');
+
+      // Sfondo quadrato arrotondato per compatibilità totale con icona Home di iPhone (iOS non ama trasparenze nelle icone Home)
+      const grad = ctx.createLinearGradient(0, 0, 360, 360);
+      grad.addColorStop(0, '#0f766e');
+      grad.addColorStop(1, '#115e59');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 360, 360);
+
+      // Cerchio interno decorativo
+      ctx.strokeStyle = '#99f6e4';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(180, 180, 148, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(180, 180, 136, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Mani osteopatiche
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 10;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(180, 175, 72, Math.PI * 0.65, Math.PI * 1.25, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(180, 175, 72, -Math.PI * 0.25, Math.PI * 0.35, false);
+      ctx.stroke();
+
+      // Profilo testolina neonato
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(180, 134, 24, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Asse cranio-sacrale
+      ctx.strokeStyle = '#5eead4';
+      ctx.lineWidth = 6.5;
+      ctx.beginPath();
+      ctx.moveTo(180, 166);
+      ctx.quadraticCurveTo(166, 196, 180, 228);
+      ctx.stroke();
+
+      [172, 190, 208, 225].forEach(py => {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(180, py, 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 23px Helvetica, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('BLEVE NEOCARE', 180, 82);
+
+      ctx.fillStyle = '#99f6e4';
+      ctx.font = 'bold 19px Helvetica, Arial, sans-serif';
+      ctx.fillText('D.O. BIAGIO BLEVE', 180, 272);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 15px Helvetica, Arial, sans-serif';
+      ctx.fillText('ROI n. 1094 - LECCE', 180, 294);
+
+      return c.toDataURL('image/png');
+    }
+
+    // Converte qualsiasi immagine/logo caricato dall'utente in un'icona quadrata 180x180 perfetta per iOS Home Screen e PDF
+    function buildSquareAppIcon(srcDataUrl, callback) {
+      const img = new Image();
+      img.onload = function() {
+        const c = document.createElement('canvas');
+        c.width = 256;
+        c.height = 256;
+        const ctx = c.getContext('2d');
+        // Sfondo bianco pieno (evita il quadrato nero su iOS quando il PNG è trasparente)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 256, 256);
+
+        const ratio = Math.min(232 / img.width, 232 / img.height);
+        const nw = img.width * ratio;
+        const nh = img.height * ratio;
+        const nx = (256 - nw) / 2;
+        const ny = (256 - nh) / 2;
+        ctx.drawImage(img, nx, ny, nw, nh);
+        callback(c.toDataURL('image/png'));
+      };
+      img.onerror = function() {
+        callback(srcDataUrl);
+      };
+      img.src = srcDataUrl;
+    }
+
+    function refreshAllLogos() {
+      if (!studioLogoDataUrl) {
+        studioLogoDataUrl = generateDefaultEmblemDataUrl();
+      }
+      ['pinLogoImg', 'headerLogoImg', 'homeCardLogoImg'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = studioLogoDataUrl;
+      });
+
+      // Aggiorna dinamicamente anche l'icona per iPhone (apple-touch-icon) e il favicon
+      buildSquareAppIcon(studioLogoDataUrl, function(squarePng) {
+        const appleIcon = document.getElementById('appleTouchIcon');
+        const fav = document.getElementById('favIcon');
+        if (appleIcon) appleIcon.href = squarePng;
+        if (fav) fav.href = squarePng;
+      });
+    }
+
+    function handleCustomLogoUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        buildSquareAppIcon(e.target.result, function(normalizedPng) {
+          studioLogoDataUrl = normalizedPng;
+          localStorage.setItem('bleve_custom_logo', studioLogoDataUrl);
+          refreshAllLogos();
+          alert('Logo impostato con successo!\n\nPer vedere questo logo come icona sulla Home di iPhone: elimina l\'eventuale icona vecchia e premi in Safari "Condividi -> Aggiungi alla schermata Home" (Nome: Bleve NeoCare).');
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Tabelle OMS Ufficiali (0-12 mesi): ogni riga è [P3, P15, P50, P85, P97]
+    const whoStandards = {
+      M: {
+        weight: [[2.5,2.9,3.3,3.9,4.3],[3.4,3.9,4.5,5.1,5.7],[4.4,4.9,5.6,6.3,7.0],[5.1,5.7,6.4,7.2,7.9],[5.6,6.2,7.0,7.8,8.6],[6.1,6.7,7.5,8.4,9.2],[6.4,7.1,7.9,8.8,9.7],[6.7,7.4,8.3,9.2,10.2],[7.0,7.7,8.6,9.6,10.5],[7.2,8.0,8.9,9.9,10.9],[7.5,8.2,9.2,10.2,11.2],[7.7,8.4,9.4,10.5,11.5],[7.8,8.6,9.6,10.8,11.8]],
+        length: [[46.3,48.0,49.9,51.8,53.4],[51.1,52.8,54.7,56.7,58.4],[54.7,56.4,58.4,60.4,62.2],[57.6,59.4,61.4,63.5,65.3],[60.0,61.8,63.9,66.0,67.8],[61.9,63.8,65.9,68.0,69.9],[63.6,65.5,67.6,69.8,71.6],[65.1,67.0,69.2,71.3,73.2],[66.5,68.4,70.6,72.8,74.7],[67.7,69.7,72.0,74.2,76.2],[69.0,71.0,73.3,75.6,77.6],[70.2,72.2,74.5,76.9,78.9],[71.3,73.4,75.7,78.1,80.2]],
+        head:   [[32.1,33.2,34.5,35.7,36.8],[35.1,36.2,37.3,38.4,39.4],[36.9,38.0,39.1,40.3,41.3],[38.3,39.4,40.5,41.7,42.7],[39.4,40.5,41.6,42.8,43.8],[40.3,41.4,42.6,43.7,44.8],[41.0,42.2,43.3,44.5,45.6],[41.7,42.8,44.0,45.2,46.3],[42.2,43.4,44.5,45.7,46.8],[42.6,43.8,45.0,46.2,47.3],[43.0,44.2,45.4,46.6,47.7],[43.4,44.6,45.8,47.0,48.1],[43.6,44.9,46.1,47.3,48.4]]
+      },
+      F: {
+        weight: [[2.4,2.8,3.2,3.7,4.2],[3.2,3.6,4.2,4.8,5.4],[4.0,4.5,5.1,5.8,6.5],[4.6,5.2,5.8,6.6,7.4],[5.1,5.7,6.4,7.3,8.1],[5.5,6.1,6.9,7.8,8.7],[5.8,6.5,7.3,8.2,9.2],[6.1,6.8,7.6,8.6,9.6],[6.3,7.0,7.9,9.0,10.0],[6.6,7.3,8.2,9.3,10.4],[6.8,7.5,8.5,9.6,10.7],[7.0,7.7,8.7,9.9,11.0],[7.1,7.9,8.9,10.1,11.3]],
+        length: [[45.6,47.3,49.1,51.0,52.7],[50.0,51.7,53.7,55.6,57.4],[53.2,55.0,57.1,59.1,60.9],[55.8,57.7,59.8,61.9,63.8],[58.0,59.9,62.1,64.3,66.2],[59.9,61.8,64.0,66.2,68.2],[61.5,63.5,65.7,68.0,70.0],[62.9,65.0,67.3,69.6,71.6],[64.3,66.4,68.7,71.1,73.2],[65.6,67.7,70.1,72.6,74.7],[66.8,69.0,71.5,73.9,76.1],[68.0,70.3,72.8,75.3,77.5],[69.2,71.4,74.0,76.6,78.9]],
+        head:   [[31.7,32.7,33.9,35.0,36.1],[34.3,35.4,36.5,37.7,38.7],[36.0,37.1,38.3,39.4,40.5],[37.2,38.4,39.5,40.7,41.8],[38.2,39.4,40.6,41.8,42.9],[39.0,40.2,41.5,42.7,43.8],[39.7,41.0,42.2,43.4,44.5],[40.3,41.6,42.8,44.1,45.2],[40.8,42.1,43.4,44.6,45.8],[41.3,42.6,43.8,45.1,46.2],[41.7,43.0,44.2,45.5,46.7],[42.0,43.3,44.6,45.9,47.1],[42.3,43.6,44.9,46.2,47.4]]
+      }
+    };
+
+    function unlockApp() {
+      const entered = document.getElementById('pinInput').value.trim();
+      if (entered === '2025') {
+        sessionPin = entered;
+        sessionStorage.setItem('bleve_session_pin', sessionPin);
+        document.getElementById('pinScreen').classList.add('hidden');
+        document.getElementById('pinError').classList.add('hidden');
+        loadPatientsFromCloud();
+      } else {
+        document.getElementById('pinError').classList.remove('hidden');
+      }
+    }
+
+    function lockApp() {
+      sessionPin = '';
+      sessionStorage.removeItem('bleve_session_pin');
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinScreen').classList.remove('hidden');
+    }
+
+    async function loadPatientsFromCloud() {
+      try {
+        const { data, error } = await supabaseClient.from('patients').select('*').order('updated_at', { ascending: false });
+        if (error) throw error;
+        patients = (data || []).map(row => ({
+          ...(row.data || {}),
+          id: row.id,
+          name: row.name,
+          evalDate: row.eval_date,
+          birthDate: row.birth_date,
+          age: row.age,
+          birthType: row.birth_type,
+          presentation: row.presentation,
+          anamnesi: row.anamnesi
+        }));
+        renderPatientArchive();
+      } catch (err) {
+        console.warn('Errore caricamento Supabase:', err);
+      }
+    }
+
+    async function saveCurrentPatient(goHomeAfter) {
+      const p = collectFormData();
+      const payload = {
+        id: p.id,
+        name: p.name,
+        eval_date: p.evalDate || null,
+        birth_date: p.birthDate || null,
+        age: p.age,
+        birth_type: p.birthType,
+        presentation: p.presentation,
+        anamnesi: p.anamnesi,
+        data: p,
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        const { error } = await supabaseClient.from('patients').upsert(payload);
+        if (error) throw error;
+        await loadPatientsFromCloud();
+      } catch (err) {
+        alert('Errore di salvataggio sul cloud: ' + err.message);
+      }
+
+      if (goHomeAfter) showView('home');
+    }
+
+    async function deletePatient(id) {
+      if (!confirm('Vuoi davvero eliminare questa scheda?')) return;
+      try {
+        const { error } = await supabaseClient.from('patients').delete().eq('id', id);
+        if (error) throw error;
+        patients = patients.filter(x => x.id !== id);
+        renderPatientArchive();
+      } catch (err) {
+        alert('Errore durante l\'eliminazione');
+      }
+    }
+
+    function showView(view) {
+      document.getElementById('homeView').classList.toggle('hidden', view !== 'home');
+      document.getElementById('formView').classList.toggle('hidden', view !== 'form');
+      if (view === 'home') renderPatientArchive();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToSection(n) {
+      currentSection = n;
+      document.getElementById('mobileSectionSelect').value = String(n);
+      if (!showAllSections) {
+        for (let i = 1; i <= 7; i++) {
+          document.getElementById('sec-' + i).classList.toggle('hidden', i !== n);
+        }
+      }
+    }
+
+    function prevSection() { if (currentSection > 1) goToSection(currentSection - 1); }
+    function nextSection() { if (currentSection < 7) goToSection(currentSection + 1); }
+
+    function toggleShowAllSections() {
+      showAllSections = !showAllSections;
+      document.getElementById('toggleAllBtn').textContent = showAllSections ? 'Mostra Singola Sezione' : 'Mostra Tutte le 7 Sezioni';
+      for (let i = 1; i <= 7; i++) {
+        document.getElementById('sec-' + i).classList.toggle('hidden', !showAllSections && i !== currentSection);
+      }
+    }
+
+    function toggleCranialZone(zoneName) {
+      const input = document.getElementById('f_cranialZones');
+      let list = input.value ? input.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (list.includes(zoneName)) list = list.filter(z => z !== zoneName);
+      else list.push(zoneName);
+      input.value = list.join(', ');
+    }
+
+    function getExactMonths() {
+      const b = document.getElementById('f_birthDate').value;
+      if (!b) return null;
+      const evalD = document.getElementById('f_evalDate').value ? new Date(document.getElementById('f_evalDate').value) : new Date();
+      const birthD = new Date(b);
+      const diffDays = Math.max(0, (evalD - birthD) / (1000 * 60 * 60 * 24));
+      return Math.min(12, diffDays / 30.4375);
+    }
+
+    function autoCalcAge() {
+      const b = document.getElementById('f_birthDate').value;
+      if (!b) return;
+      const evalD = document.getElementById('f_evalDate').value ? new Date(document.getElementById('f_evalDate').value) : new Date();
+      const diffDays = Math.max(0, Math.floor((evalD - new Date(b)) / (1000 * 60 * 60 * 24)));
+      const months = Math.floor(diffDays / 30.4375);
+      const days = Math.floor(diffDays % 30.4375);
+      document.getElementById('f_age').value = `${months} mesi e ${days} giorni`;
+      updateGrowthCharts();
+    }
+
+    function getInterpolatedWHO(gender, metric, exactMonths) {
+      const table = whoStandards[gender][metric];
+      const m = Math.max(0, Math.min(12, exactMonths || 0));
+      const m0 = Math.floor(m);
+      const m1 = Math.min(12, m0 + 1);
+      const frac = m - m0;
+      return table[m0].map((v0, i) => v0 + (table[m1][i] - v0) * frac);
+    }
+
+    function zScoreToPercentile(z) {
+      const t = 1 / (1 + 0.2316419 * Math.abs(z));
+      const d = 0.3989423 * Math.exp(-z * z / 2);
+      let p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+      if (z > 0) p = 1 - p;
+      return Math.max(1, Math.min(99, Math.round(p * 100)));
+    }
+
+    function computeExactStat(val, curves) {
+      if (!val || isNaN(val)) return null;
+      const [p3, p15, p50, p85, p97] = curves;
+      const sd = (val >= p50) ? (p85 - p50) / 1.036 : (p50 - p15) / 1.036;
+      const z = (val - p50) / (sd || 1);
+      const pct = zScoreToPercentile(z);
+      return { pct, z: z.toFixed(2) };
+    }
+
+    function switchChartTab(tab) {
+      activeChartTab = tab;
+      ['weight', 'length', 'head'].forEach(t => {
+        const btn = document.getElementById('tabChart_' + t);
+        if (t === tab) {
+          btn.className = 'flex-1 py-2 rounded-lg text-xs font-extrabold bg-white text-teal-800 shadow-sm';
+        } else {
+          btn.className = 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-600';
+        }
+      });
+      updateGrowthCharts();
+    }
+
+    function updateGrowthCharts() {
+      const gender = document.getElementById('f_gender').value || 'M';
+      const exactMonths = getExactMonths();
+      const mDisplay = exactMonths !== null ? exactMonths : 0;
+
+      document.getElementById('badgeAgeMonths').textContent = exactMonths !== null
+        ? `Età: ${exactMonths.toFixed(1)} mesi (${gender === 'M' ? 'Maschio' : 'Femmina'})`
+        : 'Inserisci Data di Nascita';
+
+      const wVal = parseFloat(document.getElementById('f_weight').value);
+      const lVal = parseFloat(document.getElementById('f_length').value);
+      const hVal = parseFloat(document.getElementById('f_head').value);
+
+      const metrics = [
+        { key: 'weight', val: wVal, el: 'stat_weight' },
+        { key: 'length', val: lVal, el: 'stat_length' },
+        { key: 'head',   val: hVal, el: 'stat_head' }
+      ];
+
+      metrics.forEach(m => {
+        const box = document.getElementById(m.el);
+        if (exactMonths === null) {
+          box.textContent = 'Inserisci data nascita';
+          return;
+        }
+        const curves = getInterpolatedWHO(gender, m.key, mDisplay);
+        const st = computeExactStat(m.val, curves);
+        if (!st) {
+          box.textContent = `Mediana OMS (50°): ${curves[2].toFixed(1)}`;
+        } else {
+          box.textContent = `${st.pct}° Centile (Z: ${st.z > 0 ? '+' : ''}${st.z})`;
+        }
+      });
+
+      renderSVGChart(gender, activeChartTab, exactMonths, { weight: wVal, length: lVal, head: hVal }[activeChartTab]);
+    }
+
+    function renderSVGChart(gender, metric, exactMonths, val) {
+      const titles = {
+        weight: `Curva OMS Peso per Età (kg) — ${gender === 'M' ? 'Maschi' : 'Femmine'} (0-12 Mesi)`,
+        length: `Curva OMS Lunghezza per Età (cm) — ${gender === 'M' ? 'Maschi' : 'Femmine'} (0-12 Mesi)`,
+        head:   `Curva OMS Circonferenza Cranica (cm) — ${gender === 'M' ? 'Maschi' : 'Femmine'} (0-12 Mesi)`
+      };
+      document.getElementById('chartTitleBox').textContent = titles[metric];
+
+      const table = whoStandards[gender][metric];
+      const minY = Math.floor(table[0][0] * 0.92);
+      const maxY = Math.ceil(table[12][4] * 1.05);
+
+      const W = 520, H = 250;
+      const padL = 42, padR = 36, padT = 16, padB = 30;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const xMap = m => padL + (m / 12) * plotW;
+      const yMap = v => padT + plotH - ((v - minY) / (maxY - minY)) * plotH;
+
+      const bgTint = gender === 'M' ? '#f0f9ff' : '#fff1f2';
+      let svg = `<svg viewBox="0 0 ${W} ${H}" class="w-full h-auto rounded-xl" style="background:${bgTint}">`;
+
+      for (let m = 0; m <= 12; m++) {
+        const x = xMap(m);
+        svg += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + plotH}" stroke="#e2e8f0" stroke-width="1"/>`;
+        svg += `<text x="${x}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#64748b" font-weight="bold">${m}m</text>`;
+      }
+
+      const steps = 5;
+      for (let i = 0; i <= steps; i++) {
+        const v = minY + ((maxY - minY) / steps) * i;
+        const y = yMap(v);
+        svg += `<line x1="${padL}" y1="${y}" x2="${padL + plotW}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/>`;
+        svg += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#64748b">${v.toFixed(1)}</text>`;
+      }
+
+      const curveConfigs = [
+        { idx: 0, label: 'P3',  color: '#f87171', width: 1.5, dash: '4,3' },
+        { idx: 1, label: 'P15', color: '#f59e0b', width: 1.6, dash: '' },
+        { idx: 2, label: 'P50', color: '#059669', width: 2.6, dash: '' },
+        { idx: 3, label: 'P85', color: '#f59e0b', width: 1.6, dash: '' },
+        { idx: 4, label: 'P97', color: '#f87171', width: 1.5, dash: '4,3' }
+      ];
+
+      curveConfigs.forEach(cfg => {
+        const pts = [];
+        for (let m = 0; m <= 12; m++) {
+          pts.push(`${xMap(m).toFixed(1)},${yMap(table[m][cfg.idx]).toFixed(1)}`);
+        }
+        svg += `<polyline fill="none" stroke="${cfg.color}" stroke-width="${cfg.width}" ${cfg.dash ? `stroke-dasharray="${cfg.dash}"` : ''} points="${pts.join(' ')}" />`;
+        const lastY = yMap(table[12][cfg.idx]);
+        svg += `<text x="${padL + plotW + 4}" y="${lastY + 3}" font-size="9" font-weight="bold" fill="${cfg.color}">${cfg.label}</text>`;
+      });
+
+      if (exactMonths !== null && val && !isNaN(val)) {
+        const px = xMap(exactMonths);
+        const py = Math.max(padT, Math.min(padT + plotH, yMap(val)));
+        svg += `<line x1="${px}" y1="${padT}" x2="${px}" y2="${padT + plotH}" stroke="#dc2626" stroke-width="1" stroke-dasharray="2,2"/>`;
+        svg += `<line x1="${padL}" y1="${py}" x2="${padL + plotW}" y2="${py}" stroke="#dc2626" stroke-width="1" stroke-dasharray="2,2"/>`;
+        svg += `<circle cx="${px}" cy="${py}" r="6" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>`;
+      }
+
+      svg += `</svg>`;
+      document.getElementById('svgChartContainer').innerHTML = svg;
+    }
+
+    function createNewPatient() {
+      currentPatientId = 'paz-' + Date.now();
+      document.getElementById('f_name').value = '';
+      document.getElementById('f_evalDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('f_birthDate').value = '';
+      document.getElementById('f_age').value = '';
+      document.getElementById('f_gender').value = 'M';
+      document.getElementById('f_birthType').value = 'Fisiologico';
+      document.getElementById('f_weight').value = '';
+      document.getElementById('f_length').value = '';
+      document.getElementById('f_head').value = '';
+      document.getElementById('f_presentation').value = 'Cefalica';
+      document.getElementById('f_anamnesi').value = '';
+      document.getElementById('f_cranialZones').value = '';
+      updateGrowthCharts();
+      showView('form');
+      goToSection(1);
+    }
+
+    function openPatient(id) {
+      const p = patients.find(x => x.id === id);
+      if (!p) return;
+      currentPatientId = p.id;
+      document.getElementById('f_name').value = p.name || '';
+      document.getElementById('f_evalDate').value = p.evalDate || '';
+      document.getElementById('f_birthDate').value = p.birthDate || '';
+      document.getElementById('f_age').value = p.age || '';
+      document.getElementById('f_gender').value = p.gender || 'M';
+      document.getElementById('f_birthType').value = p.birthType || 'Fisiologico';
+      document.getElementById('f_weight').value = p.weight || '';
+      document.getElementById('f_length').value = p.length || '';
+      document.getElementById('f_head').value = p.head || '';
+      document.getElementById('f_presentation').value = p.presentation || 'Cefalica';
+      document.getElementById('f_anamnesi').value = p.anamnesi || '';
+      document.getElementById('f_ref_0_3').value = p.ref_0_3 || 'Presente / Simmetrico';
+      document.getElementById('f_ref_4_6').value = p.ref_4_6 || 'Scomparsa fisiologica';
+      document.getElementById('f_ref_7_12').value = p.ref_7_12 || 'Paracadute Presente';
+      document.getElementById('f_cranialZones').value = p.cranialZones || '';
+      document.getElementById('f_tone').value = p.tone || 'Normotono';
+      document.getElementById('f_cervical').value = p.cervical || 'Libera e simmetrica';
+      document.getElementById('f_sutures').value = p.sutures || 'Suture libere/normotese';
+      document.getElementById('f_mile_3').value = p.mile_3 || 'Non valutato';
+      document.getElementById('f_mile_6').value = p.mile_6 || 'Non valutato';
+      document.getElementById('f_mile_9').value = p.mile_9 || 'Non valutato';
+      document.getElementById('f_mile_12').value = p.mile_12 || 'Non valutato';
+      document.getElementById('f_tt_1').value = p.tt_1 || 'Tollerato';
+      document.getElementById('f_tt_2').value = p.tt_2 || 'Tollerato';
+      document.getElementById('f_tt_3').value = p.tt_3 || 'Tollerato';
+      document.getElementById('f_tt_4').value = p.tt_4 || 'Spinta simmetrica';
+      document.getElementById('f_fren_ling_type').value = p.fren_ling_type || 'Fisiologico';
+      document.getElementById('f_fren_lab').value = p.fren_lab || 'Fisiologico';
+      document.getElementById('f_hc_1').checked = !!p.hc_1;
+      document.getElementById('f_hc_2').checked = !!p.hc_2;
+      document.getElementById('f_hc_3').checked = !!p.hc_3;
+      document.getElementById('f_hc_notes').value = p.hc_notes || '';
+      updateGrowthCharts();
+      showView('form');
+      goToSection(1);
+    }
+
+    function collectFormData() {
+      return {
+        id: currentPatientId || ('paz-' + Date.now()),
+        name: document.getElementById('f_name').value.trim() || 'Paziente Senza Nome',
+        evalDate: document.getElementById('f_evalDate').value,
+        birthDate: document.getElementById('f_birthDate').value,
+        age: document.getElementById('f_age').value,
+        gender: document.getElementById('f_gender').value,
+        birthType: document.getElementById('f_birthType').value,
+        weight: document.getElementById('f_weight').value,
+        length: document.getElementById('f_length').value,
+        head: document.getElementById('f_head').value,
+        statWeight: document.getElementById('stat_weight').textContent,
+        statLength: document.getElementById('stat_length').textContent,
+        statHead: document.getElementById('stat_head').textContent,
+        presentation: document.getElementById('f_presentation').value,
+        anamnesi: document.getElementById('f_anamnesi').value,
+        ref_0_3: document.getElementById('f_ref_0_3').value,
+        ref_4_6: document.getElementById('f_ref_4_6').value,
+        ref_7_12: document.getElementById('f_ref_7_12').value,
+        cranialZones: document.getElementById('f_cranialZones').value,
+        tone: document.getElementById('f_tone').value,
+        cervical: document.getElementById('f_cervical').value,
+        sutures: document.getElementById('f_sutures').value,
+        mile_3: document.getElementById('f_mile_3').value,
+        mile_6: document.getElementById('f_mile_6').value,
+        mile_9: document.getElementById('f_mile_9').value,
+        mile_12: document.getElementById('f_mile_12').value,
+        tt_1: document.getElementById('f_tt_1').value,
+        tt_2: document.getElementById('f_tt_2').value,
+        tt_3: document.getElementById('f_tt_3').value,
+        tt_4: document.getElementById('f_tt_4').value,
+        fren_ling_type: document.getElementById('f_fren_ling_type').value,
+        fren_lab: document.getElementById('f_fren_lab').value,
+        hc_1: document.getElementById('f_hc_1').checked,
+        hc_2: document.getElementById('f_hc_2').checked,
+        hc_3: document.getElementById('f_hc_3').checked,
+        hc_notes: document.getElementById('f_hc_notes').value
+      };
+    }
+
+    function renderPatientArchive() {
+      const q = (document.getElementById('searchName')?.value || '').toLowerCase().trim();
+      const d = document.getElementById('searchDate')?.value || '';
+      const container = document.getElementById('patientListContainer');
+
+      const filtered = patients.filter(p => {
+        const matchName = !q || (p.name || '').toLowerCase().includes(q) || (p.anamnesi || '').toLowerCase().includes(q);
+        const matchDate = !d || p.evalDate === d;
+        return matchName && matchDate;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-slate-400 text-sm border border-slate-200">Nessun paziente in archivio. Premi "+ Nuovo Paziente" per iniziare.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(p => `
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-slate-900 text-base">${p.name}</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 font-semibold">${p.age || '0-12m'}</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Valutazione: <b>${p.evalDate || '-'}</b> • Peso: ${p.weight ? p.weight + ' kg' : '-'}</p>
+            <p class="text-xs text-slate-600 mt-1">${p.anamnesi || 'Nessuna nota clinica'}</p>
+          </div>
+          <div class="flex flex-wrap gap-1.5 w-full sm:w-auto">
+            <button onclick="openPatient('${p.id}')" class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-teal-700 text-white font-bold text-xs">Apri / Modifica</button>
+            <button onclick="openPatient('${p.id}'); generatePDF('full')" class="px-3 py-2 rounded-xl bg-slate-900 text-white font-semibold text-xs">📄 PDF Pro</button>
+            <button onclick="deletePatient('${p.id}')" class="px-2.5 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==================== MOTORE GRAFICO PDF MEDICO v6.0 (FONT E BORDI PERFETTI) ====================
+
+    // Pulisce qualsiasi simbolo Unicode che jsPDF Helvetica non supporta (evita spaziatura rotta o caratteri strani)
+    function cleanPdfText(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/[•✓✔]/g, '-')
+        .replace(/[—–]/g, '-')
+        .replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
+    }
+
+    function drawPageWatermark(doc) {
+      doc.setDrawColor(238, 246, 245);
+      doc.setLineWidth(0.5);
+      doc.circle(105, 150, 38, 'S');
+      doc.circle(105, 150, 34, 'S');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(238, 246, 245);
+      doc.text('STUDIO OSTEOPATIA BLEVE', 105, 148, { align: 'center' });
+      doc.setFontSize(9);
+      doc.text('D.O. BIAGIO BLEVE - ROI N. 1094', 105, 154, { align: 'center' });
+    }
+
+    function drawMedicalBrandingHeader(doc) {
+      drawPageWatermark(doc);
+
+      doc.setFillColor(11, 79, 74);
+      doc.rect(0, 0, 210, 31, 'F');
+      doc.setFillColor(20, 184, 166);
+      doc.rect(0, 31, 210, 1.5, 'F');
+
+      // Box bianco con il Logo
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(10, 3.5, 24, 24, 3, 3, 'F');
+      try {
+        if (studioLogoDataUrl) {
+          doc.addImage(studioLogoDataUrl, 'PNG', 11, 4.5, 22, 22);
+        }
+      } catch (e) {
+        console.warn('Logo fallback PDF:', e);
+      }
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text('STUDIO DI OSTEOPATIA E POSTUROLOGIA BLEVE', 38, 10);
+
+      doc.setFontSize(9);
+      doc.setTextColor(153, 246, 228);
+      doc.text('Dott. Biagio Bleve D.O. - Osteopata Materno Pediatrico e Adulti, Posturologo', 38, 15.2);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.4);
+      doc.setTextColor(240, 253, 250);
+      doc.text('Membro Certificato ROI (Registro degli Osteopati d\'Italia n. 1094) - Master I e II Liv. Medicina Osteopatica (Bruxelles)', 38, 19.8);
+      doc.text('Tel: 339 3430142   |   Email: osteopatiableve@gmail.com   |   Sito Web: www.osteopatiableve.it', 38, 24);
+      doc.setTextColor(204, 251, 241);
+      doc.text('Sedi: LECCE (P.zza L. Ariosto)  -  CORSANO (Via V. Bellini 26)  -  GALATONE (Via L. Cadorna 103)  -  LIZZANELLO (C. Med. Sant\'Anna)', 38, 28.2);
+    }
+
+    function drawMedicalBrandingFooter(doc) {
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+
+        doc.setFillColor(241, 245, 249);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.3);
+        doc.rect(10, 276, 190, 16, 'FD');
+
+        doc.setFillColor(11, 79, 74);
+        doc.rect(10, 276, 190, 4.2, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.6);
+        doc.setTextColor(255, 255, 255);
+        doc.text('SEDI DELLO STUDIO OSTEOPATIA BLEVE  -  PRENOTAZIONI E CONSULENZE: TEL. 339 3430142  -  WWW.OSTEOPATIABLEVE.IT', 105, 278.9, { align: 'center' });
+
+        const cols = [
+          { city: 'SEDE DI LECCE', addr: 'Piazza L. Ariosto, 73100 Lecce' },
+          { city: 'SEDE DI CORSANO', addr: 'Via V. Bellini 26, 73033 Corsano' },
+          { city: 'SEDE DI GALATONE', addr: 'Via L. Cadorna 103, 73044 Galatone' },
+          { city: 'SEDE DI LIZZANELLO', addr: 'Via C. Benso di Cavour 2 (Sant\'Anna)' }
+        ];
+
+        cols.forEach((c, idx) => {
+          const cx = 13 + idx * 47;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.3);
+          doc.setTextColor(15, 118, 110);
+          doc.text(c.city, cx, 284);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.9);
+          doc.setTextColor(71, 85, 105);
+          doc.text(c.addr, cx, 287.5);
+        });
+
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(6);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Bleve NeoCare - Referto Neuro-Osteopatico Pediatrico - Pagina ${i} di ${pageCount}`, 105, 291, { align: 'center' });
+      }
+    }
+
+    function drawWHOChartOnPDF(doc, x0, y0, w, h, gender, metric, title, exactMonths, patientVal) {
+      const table = whoStandards[gender][metric];
+      const minY = Math.floor(table[0][0] * 0.92);
+      const maxY = Math.ceil(table[12][4] * 1.05);
+
+      if (gender === 'M') doc.setFillColor(240, 249, 255);
+      else doc.setFillColor(255, 241, 242);
+      doc.setDrawColor(148, 163, 184);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x0, y0, w, h, 2, 2, 'FD');
+
+      doc.setFillColor(15, 118, 110);
+      doc.roundedRect(x0, y0, w, 5, 1.5, 1.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.6);
+      doc.setTextColor(255, 255, 255);
+      doc.text(cleanPdfText(title), x0 + w / 2, y0 + 3.5, { align: 'center' });
+
+      // Margine destro aumentato (padR = 7.5) così P97, P85, P50 stanno tutti dentro il box
+      const padL = 7.5, padR = 7.5, padT = 6.8, padB = 5.5;
+      const plotX = x0 + padL;
+      const plotY = y0 + padT;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.2);
+      doc.rect(plotX, plotY, plotW, plotH, 'FD');
+
+      const xMap = m => plotX + (m / 12) * plotW;
+      const yMap = v => plotY + plotH - ((v - minY) / (maxY - minY)) * plotH;
+
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.15);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.2);
+      doc.setTextColor(100, 116, 139);
+      [0, 3, 6, 9, 12].forEach(m => {
+        const gx = xMap(m);
+        doc.line(gx, plotY, gx, plotY + plotH);
+        doc.text(`${m}m`, gx, plotY + plotH + 3.3, { align: 'center' });
+      });
+
+      for (let i = 0; i <= 4; i++) {
+        const gv = minY + ((maxY - minY) / 4) * i;
+        const gy = yMap(gv);
+        doc.line(plotX, gy, plotX + plotW, gy);
+        doc.text(gv.toFixed(0), plotX - 1, gy + 1.2, { align: 'right' });
+      }
+
+      const curves = [
+        { idx: 0, label: 'P3',  r: 239, g: 68,  b: 68,  lw: 0.25 },
+        { idx: 1, label: 'P15', r: 245, g: 158, b: 11,  lw: 0.28 },
+        { idx: 2, label: 'P50', r: 5,   g: 150, b: 105, lw: 0.55 },
+        { idx: 3, label: 'P85', r: 245, g: 158, b: 11,  lw: 0.28 },
+        { idx: 4, label: 'P97', r: 239, g: 68,  b: 68,  lw: 0.25 }
+      ];
+
+      curves.forEach(c => {
+        doc.setDrawColor(c.r, c.g, c.b);
+        doc.setLineWidth(c.lw);
+        for (let m = 0; m < 12; m++) {
+          doc.line(xMap(m), yMap(table[m][c.idx]), xMap(m + 1), yMap(table[m + 1][c.idx]));
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(4.6);
+        doc.setTextColor(c.r, c.g, c.b);
+        doc.text(c.label, plotX + plotW + 0.6, yMap(table[12][c.idx]) + 1);
+      });
+
+      const numVal = parseFloat(patientVal);
+      if (exactMonths !== null && !isNaN(numVal) && numVal > 0) {
+        const px = xMap(Math.max(0, Math.min(12, exactMonths)));
+        const py = Math.max(plotY, Math.min(plotY + plotH, yMap(numVal)));
+        doc.setDrawColor(220, 38, 38);
+        doc.setLineWidth(0.25);
+        doc.line(px, plotY, px, plotY + plotH);
+        doc.line(plotX, py, plotX + plotW, py);
+        doc.setFillColor(220, 38, 38);
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.45);
+        doc.circle(px, py, 1.3, 'FD');
+      }
+    }
+
+    // Mappa Cranio-Cervicale ridisegnata con ampio margine inferiore: C0-C1-C2 sta ben dentro il box
+    function drawCranialDiagramOnPDF(doc, x0, y0, w, h, selectedZonesStr) {
+      const zones = (selectedZonesStr || '').toLowerCase();
+      doc.setFillColor(240, 253, 250);
+      doc.setDrawColor(15, 118, 110);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x0, y0, w, h, 2, 2, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.2);
+      doc.setTextColor(15, 118, 110);
+      doc.text('MAPPA CRANIO-CERVICALE', x0 + w / 2, y0 + 4.2, { align: 'center' });
+
+      const cx = x0 + w / 2;
+      const cy = y0 + 16.5; // Alzato il centro del cranio per lasciare ampio spazio sotto
+
+      // Contorno cranio proporzionato
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(15, 118, 110);
+      doc.setLineWidth(0.5);
+      doc.ellipse(cx, cy, 9.5, 10.5, 'FD');
+
+      // Linee suturali
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.22);
+      doc.line(cx, cy - 10, cx, cy + 10);
+      doc.line(cx - 8.8, cy - 2.5, cx + 8.8, cy - 2.5);
+
+      // Fontanella Anteriore
+      const hasFA = zones.includes('fontanella ant');
+      doc.setFillColor(hasFA ? 239 : 203, hasFA ? 68 : 213, hasFA ? 68 : 225);
+      doc.circle(cx, cy - 3.5, 2, 'F');
+
+      // Fontanella Posteriore
+      const hasFP = zones.includes('fontanella post');
+      doc.setFillColor(hasFP ? 239 : 203, hasFP ? 68 : 213, hasFP ? 68 : 225);
+      doc.circle(cx, cy + 5, 1.5, 'F');
+
+      // Plagiocefalia SX e DX
+      const hasPSX = zones.includes('plagiocefalia sx');
+      doc.setFillColor(hasPSX ? 239 : 226, hasPSX ? 68 : 232, hasPSX ? 68 : 240);
+      doc.circle(cx - 5, cy + 6.5, 2.1, 'FD');
+
+      const hasPDX = zones.includes('plagiocefalia dx');
+      doc.setFillColor(hasPDX ? 239 : 226, hasPDX ? 68 : 232, hasPDX ? 68 : 240);
+      doc.circle(cx + 5, cy + 6.5, 2.1, 'FD');
+
+      // Box C0-C1-C2 ben distanziato dal bordo inferiore (4.5 mm di margine sotto)
+      const hasC = zones.includes('c0-c1-c2') || zones.includes('restrizione');
+      const rectY = cy + 12;
+      doc.setFillColor(hasC ? 239 : 226, hasC ? 68 : 232, hasC ? 68 : 240);
+      doc.setDrawColor(15, 118, 110);
+      doc.setLineWidth(0.25);
+      doc.roundedRect(cx - 8, rectY, 16, 4.2, 1, 1, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5.3);
+      doc.setTextColor(hasC ? 255 : 51, hasC ? 255 : 65, hasC ? 255 : 85);
+      doc.text('C0-C1-C2', cx, rectY + 2.9, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5.4);
+      doc.setTextColor(100, 116, 139);
+      doc.text('SX', cx - 13, cy + 1);
+      doc.text('DX', cx + 10.5, cy + 1);
+    }
+
+    function isStatusNormal(val) {
+      if (!val) return true;
+      const s = val.toLowerCase();
+      return s.includes('presente') || s.includes('simmetric') || s.includes('fisiologic') || s.includes('normo') || s.includes('libera') || s.includes('raggiunto') || s.includes('tollerato') || s.includes('non valutato');
+    }
+
+    function drawStatusBadge(doc, x, y, rawText, maxW) {
+      const text = cleanPdfText(rawText || '-');
+      const ok = isStatusNormal(text);
+      if (ok) {
+        doc.setFillColor(220, 252, 231);
+        doc.setDrawColor(134, 239, 172);
+        doc.setTextColor(21, 128, 61);
+      } else {
+        doc.setFillColor(254, 243, 199);
+        doc.setDrawColor(252, 211, 77);
+        doc.setTextColor(180, 83, 9);
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.8);
+      const limitW = maxW || 44;
+      const w = Math.min(limitW, Math.max(22, doc.getTextWidth(text) + 5));
+      doc.roundedRect(x, y - 3.3, w, 4.8, 1.2, 1.2, 'FD');
+      doc.text(text, x + w / 2, y - 0.1, { align: 'center' });
+    }
+
+    function generatePDF(mode) {
+      const p = collectFormData();
+      const exactMonths = getExactMonths();
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      drawMedicalBrandingHeader(doc);
+
+      let y = 35;
+
+      // Fascia Titolo Referto
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(15, 118, 110);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(10, y, 190, 7, 1.5, 1.5, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.8);
+      doc.setTextColor(11, 79, 74);
+      doc.text(
+        mode === 'homecare'
+          ? 'PIANO TERAPEUTICO DOMICILIARE & INDICAZIONI DI HOME CARE PEDIATRICO'
+          : 'CARTELLA CLINICA NEURO-OSTEOPATICA & BILANCIO DI CRESCITA NEONATALE (0-12 MESI)',
+        13.5, y + 4.7
+      );
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`ID Scheda: ${p.id.slice(-6).toUpperCase()}`, 196.5, y + 4.7, { align: 'right' });
+      y += 8.8;
+
+      // SCHEDA ANAGRAFICA STRUTTURATA + 3 CARD ANTROPOMETRICHE
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(10, y, 190, 24.5, 2, 2, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.6);
+      doc.setTextColor(100, 116, 139);
+      doc.text('PAZIENTE NEONATO', 13.5, y + 4);
+      doc.text('DATA DI NASCITA & ETA', 76, y + 4);
+      doc.text('SESSO', 132, y + 4);
+      doc.text('TIPO DI PARTO & PRESENTAZIONE', 152, y + 4);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(15, 23, 42);
+      doc.text(cleanPdfText(p.name), 13.5, y + 8.3);
+      doc.setFontSize(8.2);
+      doc.text(cleanPdfText(`${p.birthDate || '-'} (${p.age || '0m'})`), 76, y + 8.3);
+      doc.text(p.gender === 'F' ? 'Femmina' : 'Maschio', 132, y + 8.3);
+      doc.text(cleanPdfText(`${p.birthType} / ${p.presentation}`), 152, y + 8.3);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.line(13, y + 10.3, 197, y + 10.3);
+
+      const bioCards = [
+        { label: 'PESO CORPOREO', val: p.weight ? `${p.weight} kg` : 'Non inserito', stat: cleanPdfText(p.statWeight || '-') },
+        { label: 'LUNGHEZZA TOTALE', val: p.length ? `${p.length} cm` : 'Non inserito', stat: cleanPdfText(p.statLength || '-') },
+        { label: 'CIRCONFERENZA CRANICA', val: p.head ? `${p.head} cm` : 'Non inserito', stat: cleanPdfText(p.statHead || '-') }
+      ];
+
+      bioCards.forEach((bc, i) => {
+        const bx = 13 + i * 62;
+        const by = y + 11.8;
+        doc.setFillColor(240, 253, 250);
+        doc.setDrawColor(153, 246, 228);
+        doc.roundedRect(bx, by, 59, 11, 1.5, 1.5, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.2);
+        doc.setTextColor(15, 118, 110);
+        doc.text(bc.label, bx + 3, by + 3.8);
+
+        doc.setFontSize(8.8);
+        doc.setTextColor(15, 23, 42);
+        doc.text(bc.val, bx + 3, by + 8.8);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(13, 148, 136);
+        doc.text(bc.stat, bx + 56, by + 8.8, { align: 'right' });
+      });
+
+      y += 26.8;
+
+      // TRITTICO DEI 3 GRAFICI OMS AD ALTA DEFINIZIONE
+      const chartW = 61.3;
+      const chartH = 41;
+      drawWHOChartOnPDF(doc, 10,    y, chartW, chartH, p.gender || 'M', 'weight', 'Curva OMS Peso (kg - 0-12m)',      exactMonths, p.weight);
+      drawWHOChartOnPDF(doc, 74.3,  y, chartW, chartH, p.gender || 'M', 'length', 'Curva OMS Lunghezza (cm - 0-12m)', exactMonths, p.length);
+      drawWHOChartOnPDF(doc, 138.7, y, chartW, chartH, p.gender || 'M', 'head',   'Curva OMS Cranio CC (cm - 0-12m)', exactMonths, p.head);
+
+      y += chartH + 3.2;
+
+      if (mode === 'full') {
+        // SEZIONE 1: ANAMNESI CLINICA (formattazione Helvetica uniforme)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        const rawAnam = cleanPdfText(p.anamnesi || 'Decorso fisiologico. Nessuna criticita anamnestica particolare segnalata.');
+        const anamLines = doc.splitTextToSize(rawAnam, 182).slice(0, 3);
+        const anamH = Math.max(14, 7 + anamLines.length * 4);
+
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(10, y, 190, anamH, 1.8, 1.8, 'FD');
+        doc.setFillColor(11, 79, 74);
+        doc.roundedRect(10, y, 190, 5.2, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.8);
+        doc.setTextColor(255, 255, 255);
+        doc.text('1. ANAMNESI CLINICA, STORIA DEL PARTO E VALUTAZIONE OSTEOPATICA', 13.5, y + 3.7);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(30, 41, 59);
+        doc.text(anamLines, 13.5, y + 9.5);
+        y += anamH + 3;
+
+        // SEZIONE 2 & 3 ALLARGATE (Altezza portata a 45mm per dare ampio respiro alla Mappa Cranica)
+        const sec23H = 45;
+
+        // Box Sinistro (115mm): Tono, Postura + Mappa Cranica
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(10, y, 115, sec23H, 1.8, 1.8, 'FD');
+        doc.setFillColor(11, 79, 74);
+        doc.roundedRect(10, y, 115, 5.2, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.6);
+        doc.setTextColor(255, 255, 255);
+        doc.text('2. TONO MUSCOLARE, SUTURE E MAPPA CRANIO-CERVICALE', 13.5, y + 3.7);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text('Tono Posturale:', 13.5, y + 12.5);
+        drawStatusBadge(doc, 37, y + 12.5, p.tone, 42);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text('Cervicale C0-C2:', 13.5, y + 20.5);
+        drawStatusBadge(doc, 37, y + 20.5, p.cervical, 42);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text('Suture Craniche:', 13.5, y + 28.5);
+        drawStatusBadge(doc, 37, y + 28.5, p.sutures, 42);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(15, 118, 110);
+        doc.text('Zone Rilevate:', 13.5, y + 35.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.setTextColor(30, 41, 59);
+        const czLines = doc.splitTextToSize(cleanPdfText(p.cranialZones || 'Nessuna restrizione specifica'), 66).slice(0, 2);
+        doc.text(czLines, 13.5, y + 39.2);
+
+        // Mappa Cranio-Cervicale centrata con margine inferiore generoso
+        drawCranialDiagramOnPDF(doc, 82.5, y + 6.8, 39.5, 36, p.cranialZones);
+
+        // Box Destro (72mm): Riflessi Arcaici Primari ben spaziati
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(128, y, 72, sec23H, 1.8, 1.8, 'FD');
+        doc.setFillColor(11, 79, 74);
+        doc.roundedRect(128, y, 72, 5.2, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.6);
+        doc.setTextColor(255, 255, 255);
+        doc.text('3. RIFLESSI ARCAICI PRIMARI', 131.5, y + 3.7);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.3);
+        doc.setTextColor(51, 65, 85);
+        doc.text('0-3m (Moro/Suzione):', 131.5, y + 13.5);
+        drawStatusBadge(doc, 159, y + 13.5, p.ref_0_3, 38);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.3);
+        doc.setTextColor(51, 65, 85);
+        doc.text('4-6m (RTAC/Integr.):', 131.5, y + 25);
+        drawStatusBadge(doc, 159, y + 25, p.ref_4_6, 38);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.3);
+        doc.setTextColor(51, 65, 85);
+        doc.text('7-12m (Paracadute):', 131.5, y + 36.5);
+        drawStatusBadge(doc, 159, y + 36.5, p.ref_7_12, 38);
+
+        y += sec23H + 3;
+
+        // SEZIONE 4: TAPPE DELLO SVILUPPO, TUMMY TIME E FRENULO (Tabella allargata a 31mm e righe divise)
+        const sec45H = 31;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(10, y, 190, sec45H, 1.8, 1.8, 'FD');
+        doc.setFillColor(11, 79, 74);
+        doc.roundedRect(10, y, 190, 5.2, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.6);
+        doc.setTextColor(255, 255, 255);
+        doc.text('4. TAPPE DELLO SVILUPPO PSICOMOTORIO (3-12m), TUMMY TIME & FRENULO ORALE', 13.5, y + 3.7);
+
+        const miles = [
+          { m: '3 Mesi', v: p.mile_3 },
+          { m: '6 Mesi', v: p.mile_6 },
+          { m: '9 Mesi', v: p.mile_9 },
+          { m: '12 Mesi', v: p.mile_12 }
+        ];
+        miles.forEach((ml, idx) => {
+          const mx = 13.5 + idx * 46.5;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.2);
+          doc.setTextColor(51, 65, 85);
+          doc.text(`${ml.m}:`, mx, y + 11.2);
+          drawStatusBadge(doc, mx + 13, y + 11.2, ml.v, 30);
+        });
+
+        doc.setDrawColor(226, 232, 240);
+        doc.line(13, y + 14.8, 197, y + 14.8);
+
+        // Riga Tummy Time formattata in 4 colonne ordinate
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.2);
+        doc.setTextColor(15, 118, 110);
+        doc.text('TUMMY TIME:', 13.5, y + 20.2);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.2);
+        doc.setTextColor(30, 41, 59);
+        doc.text(cleanPdfText(`Pancia a Pancia: ${p.tt_1}   |   Ginocchia: ${p.tt_2}   |   Rullo: ${p.tt_3}   |   A Terra: ${p.tt_4}`), 34, y + 20.2);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.line(13, y + 23.2, 197, y + 23.2);
+
+        // Riga Frenulo Orale formattata e allineata
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.2);
+        doc.setTextColor(15, 118, 110);
+        doc.text('FRENULO ORALE:', 13.5, y + 28);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.2);
+        doc.setTextColor(30, 41, 59);
+        doc.text(cleanPdfText(`Linguale: ${p.fren_ling_type}     |     Labiale Superiore: ${p.fren_lab}`), 38, y + 28);
+
+        y += sec45H + 3;
+      }
+
+      // SEZIONE 5: PROGRAMMA DI HOME CARE (Zero caratteri Unicode rotti, pallini vettoriali e testo entro i bordi)
+      const hcItems = [];
+      if (p.hc_1) hcItems.push('Manovre dolci di Rilascio Addominale e Diaframmatico (prevenzione coliche gassose e reflusso).');
+      if (p.hc_2) hcItems.push('Stimolazione Visiva, Tummy Time progressivo e Rotazione Cervicale Attiva bilaterale.');
+      if (p.hc_3) hcItems.push('Esercizi di Decompressione Sacrale e mobilizzazione dolce del bacino.');
+      hcItems.push(`Posologia e indicazioni: ${cleanPdfText(p.hc_notes || 'Eseguire quotidianamente secondo quanto mostrato in seduta.')}`);
+
+      // Calcolo linee avvolte entro 176mm (così non escono MAI dal bordo destro)
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.6);
+      const wrappedHc = hcItems.map(item => doc.splitTextToSize(item, 176));
+      let totalHcLines = 0;
+      wrappedHc.forEach(arr => { totalHcLines += arr.length; });
+
+      const hcH = Math.max(23, 7.5 + totalHcLines * 4.2 + 2);
+      doc.setFillColor(240, 253, 250);
+      doc.setDrawColor(15, 118, 110);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(10, y, 190, hcH, 1.8, 1.8, 'FD');
+
+      doc.setFillColor(13, 148, 136);
+      doc.roundedRect(10, y, 190, 5.2, 1.5, 1.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.8);
+      doc.setTextColor(255, 255, 255);
+      doc.text('5. PROGRAMMA DI HOME CARE E CONSIGLI POSTURALI PER I GENITORI', 13.5, y + 3.7);
+
+      let hy = y + 9.8;
+      wrappedHc.forEach((linesArr, idx) => {
+        // Pallino verde vettoriale (sostituisce il carattere Unicode rotto)
+        doc.setFillColor(13, 148, 136);
+        doc.circle(15, hy - 1.1, 1, 'F');
+
+        doc.setFont('helvetica', idx === wrappedHc.length - 1 ? 'bold' : 'normal');
+        doc.setFontSize(7.6);
+        doc.setTextColor(15, 23, 42);
+        linesArr.forEach(line => {
+          doc.text(line, 18.5, hy);
+          hy += 4.1;
+        });
+      });
+
+      // Timbro Professionale + Firma ben sopra il footer
+      const signY = Math.min(266, y + hcH + 6);
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.4);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Data di emissione referto: ${cleanPdfText(p.evalDate || new Date().toISOString().slice(0, 10))}`, 12, signY);
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(15, 118, 110);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(132, signY - 5, 68, 10.5, 1.5, 1.5, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(15, 118, 110);
+      doc.text('Dott. Biagio Bleve D.O. (ROI n. 1094)', 166, signY - 1.4, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(71, 85, 105);
+      doc.text('Firma: _______________________________', 166, signY + 3.2, { align: 'center' });
+
+      drawMedicalBrandingFooter(doc);
+
+      doc.save(`Referto_Bleve_NeoCare_${p.name.replace(/\s+/g, '_')}.pdf`);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      refreshAllLogos();
+      updateGrowthCharts();
+      if (sessionPin) {
+        document.getElementById('pinInput').value = sessionPin;
+        unlockApp();
+      }
+    });
+  </script>
+</body>
+</html>
