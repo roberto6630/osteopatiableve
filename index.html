@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Osteopatia Bleve" />
+  <title>Osteopatia Bleve - Gestionale Neuro-Osteopatico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Supabase Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    input, textarea, select { font-size: 16px !important; }
+  </style>
+</head>
+<body class="text-slate-800 pb-40">
+
+  <!-- SCHERMATA DI BLOCCO PIN -->
+  <div id="pinScreen" class="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center border border-teal-500/30">
+      <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-teal-600 flex items-center justify-center shadow-lg">
+        <svg class="w-10 h-10 text-white" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3">
+          <path d="M20 44c-6-6-6-18 2-24 6-5 16-5 22 0 8 6 8 18 2 24" stroke-linecap="round"/>
+          <circle cx="32" cy="26" r="7"/>
+          <path d="M16 48c8 6 24 6 32 0" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1 class="text-xl font-bold text-slate-900">Osteopatia Bleve</h1>
+      <p class="text-xs text-slate-500 mt-1 mb-5">Cartella Clinica Neuro-Osteopatica (0-12m)<br/>Inserisci il PIN Studio per accedere</p>
+
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="10" placeholder="••••"
+        class="w-full text-center text-2xl tracking-[0.4em] font-bold py-3 px-4 rounded-xl border-2 border-slate-200 focus:border-teal-600 focus:outline-none mb-3"
+        onkeydown="if(event.key==='Enter') unlockApp()" />
+
+      <p id="pinError" class="text-xs text-red-600 font-semibold mb-3 hidden">PIN errato. Riprova.</p>
+
+      <button id="unlockBtn" onclick="unlockApp()" class="w-full py-3.5 bg-teal-600 hover:bg-teal-700 active:scale-[0.99] text-white font-bold rounded-xl shadow-md transition">
+        Accedi allo Studio
+      </button>
+      <p class="text-[11px] text-slate-400 mt-4">PIN predefinito: <span class="font-mono font-bold text-slate-600">2025</span></p>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="bg-gradient-to-r from-teal-800 via-teal-700 to-cyan-800 text-white shadow-md">
+    <div class="max-w-4xl mx-auto px-3 py-3.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 cursor-pointer" onclick="showView('home')">
+        <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center border border-white/25 shrink-0">
+          <svg class="w-6 h-6 text-teal-100" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2">
+            <path d="M20 44c-6-6-6-18 2-24 6-5 16-5 22 0 8 6 8 18 2 24" stroke-linecap="round"/>
+            <circle cx="32" cy="26" r="7"/>
+            <path d="M16 48c8 6 24 6 32 0" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base sm:text-lg tracking-tight">Osteopatia Bleve</span>
+            <span id="serverStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400/25 text-emerald-100 border border-emerald-300/40 font-semibold">Cloud Supabase Attivo</span>
+          </div>
+          <p class="text-[11px] text-teal-100 leading-tight">Valutazione Neuro-Evolutiva e Osteopatica Neonatale</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button onclick="showView('home')" class="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-semibold">🏠 Home</button>
+        <button onclick="lockApp()" class="px-2.5 py-1.5 rounded-lg bg-red-500/30 hover:bg-red-500/50 text-xs font-semibold">🔒 Esci</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-3 pt-4">
+
+    <!-- HOME PAGE -->
+    <section id="homeView" class="space-y-4">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900">Archivio Pazienti Cloud</h2>
+          <p class="text-xs text-slate-500">Sincronizzato in tempo reale su iPhone, iPad e PC.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="createNewPatient()" class="flex-1 sm:flex-initial px-4 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-sm">
+            ＋ Nuovo Paziente
+          </button>
+          <button onclick="loadPatientsFromCloud()" class="px-3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+            🔄 Aggiorna
+          </button>
+        </div>
+      </div>
+
+      <!-- Ricerca -->
+      <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Cerca Paziente (Nome / Cognome / Note)</label>
+            <input id="searchName" type="text" placeholder="Es. Leonardo Rossi..." oninput="renderPatientArchive()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-teal-600 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Data Valutazione</label>
+            <input id="searchDate" type="date" onchange="renderPatientArchive()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-teal-600 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <div id="patientListContainer" class="space-y-2.5"></div>
+    </section>
+
+    <!-- SCHEDA PAZIENTE (7 SEZIONI) -->
+    <section id="formView" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <button onclick="showView('home')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+          ← Archivio
+        </button>
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="saveCurrentPatient(true)" class="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-sm">
+            💾 Salva Scheda
+          </button>
+          <button onclick="generatePDF('full')" class="px-3 py-2 rounded-xl bg-slate-800 text-white font-semibold text-xs">
+            📄 PDF Completo
+          </button>
+          <button onclick="generatePDF('homecare')" class="px-3 py-2 rounded-xl bg-cyan-700 text-white font-semibold text-xs">
+            👪 PDF Home Care
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigatore Sezioni -->
+      <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-600 uppercase">Sezioni Cliniche (1-7)</span>
+          <button id="toggleAllBtn" onclick="toggleShowAllSections()" class="text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
+            Mostra Tutte le 7 Sezioni
+          </button>
+        </div>
+        <select id="mobileSectionSelect" onchange="goToSection(parseInt(this.value))" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold text-slate-800 bg-slate-50">
+          <option value="1">1. Anagrafica Paziente & Anamnesi</option>
+          <option value="2">2. Riflessi Arcaici e Automatismi</option>
+          <option value="3">3. Tono, Postura & Mappa Cranio-Cervicale</option>
+          <option value="4">4. Pietre Miliari dello Sviluppo (3-12m)</option>
+          <option value="5">5. Guida Clinica al Tummy Time</option>
+          <option value="6">6. Valutazione Frenulo (Ankiloglossia)</option>
+          <option value="7">7. Indicazioni Home Care per i Genitori</option>
+        </select>
+      </div>
+
+      <!-- 1. ANAGRAFICA -->
+      <div id="sec-1" class="form-section bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">1. Anagrafica Paziente & Anamnesi</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Nome/Cognome Neonato *</label>
+            <input id="f_name" type="text" placeholder="Es. Leonardo Rossi" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Data Valutazione</label>
+            <input id="f_evalDate" type="date" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Data di Nascita</label>
+            <input id="f_birthDate" type="date" onchange="autoCalcAge()" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Età Cronologica / Corretta</label>
+            <input id="f_age" type="text" placeholder="Es. 2 mesi e 10 giorni" class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tipo di Parto</label>
+            <select id="f_birthType" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Fisiologico">Fisiologico</option>
+              <option value="Cesareo">Cesareo</option>
+              <option value="Ventosa/Forcipe">Ventosa/Forcipe</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Presentazione</label>
+            <select id="f_presentation" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Cefalica">Cefalica</option>
+              <option value="Podalica">Podalica</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Anamnesi Clinica / Note Osteopatiche</label>
+          <textarea id="f_anamnesi" rows="3" class="w-full p-3 rounded-xl border border-slate-300"></textarea>
+        </div>
+      </div>
+
+      <!-- 2. RIFLESSI ARCAICI -->
+      <div id="sec-2" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">2. Riflessi Arcaici e Automatismi</h3>
+        <div class="space-y-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">0-3 MESI (Moro, Suzione, Marcia, Prensione)</p>
+            <select id="f_ref_0_3" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Presente / Simmetrico">Presente / Simmetrico</option>
+              <option value="Asimmetrico (R/L)">Asimmetrico (R/L)</option>
+              <option value="Assente / Debole">Assente / Debole</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">4-6 MESI (Integrazione & RTAC)</p>
+            <select id="f_ref_4_6" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Scomparsa fisiologica">Scomparsa fisiologica</option>
+              <option value="Persistenza anomala">Persistenza anomala</option>
+              <option value="RTAC Presente">RTAC Presente</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">7-12 MESI (Paracadute)</p>
+            <select id="f_ref_7_12" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Paracadute Presente">Paracadute Presente</option>
+              <option value="Paracadute Assente">Paracadute Assente</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. TONO, POSTURA E MAPPA CRANICA -->
+      <div id="sec-3" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">3. Tono, Postura e Mobilità Cranio-Cervicale</h3>
+        <div class="p-3 rounded-2xl bg-teal-50/60 border border-teal-200 text-center">
+          <p class="text-xs font-bold text-teal-900 mb-1">Mappa Cranio-Cervicale Interattiva</p>
+          <svg viewBox="0 0 260 220" class="w-56 h-48 mx-auto select-none">
+            <ellipse cx="130" cy="105" rx="75" ry="88" fill="#ffffff" stroke="#0f766e" stroke-width="3"/>
+            <polygon onclick="toggleCranialZone('Fontanella Ant.')" points="130,66 144,84 130,102 116,84" fill="#cbd5e1" stroke="#0f766e" stroke-width="2" class="cursor-pointer"/>
+            <polygon onclick="toggleCranialZone('Fontanella Post.')" points="130,145 140,160 130,172 120,160" fill="#cbd5e1" stroke="#0f766e" stroke-width="2" class="cursor-pointer"/>
+            <circle onclick="toggleCranialZone('Plagiocefalia DX')" cx="165" cy="165" r="14" fill="#e2e8f0" stroke="#0f766e" stroke-width="1.8" class="cursor-pointer"/>
+            <circle onclick="toggleCranialZone('Plagiocefalia SX')" cx="95" cy="165" r="14" fill="#e2e8f0" stroke="#0f766e" stroke-width="1.8" class="cursor-pointer"/>
+            <rect onclick="toggleCranialZone('Restrizione C0-C1-C2')" x="100" y="194" width="60" height="20" rx="6" fill="#e2e8f0" stroke="#0f766e" stroke-width="1.8" class="cursor-pointer"/>
+          </svg>
+          <input id="f_cranialZones" type="text" placeholder="Zone selezionate..." class="w-full mt-2 px-3 py-1.5 text-xs rounded-lg border border-teal-300 bg-white" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tono</label>
+            <select id="f_tone" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Normotono">Normotono</option>
+              <option value="Ipertono assiale">Ipertono assiale</option>
+              <option value="Ipotono/Head lag">Ipotono/Head lag</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Mobilità C0-C1-C2</label>
+            <select id="f_cervical" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Libera e simmetrica">Libera e simmetrica</option>
+              <option value="Restrizione a DX">Restrizione a DX</option>
+              <option value="Restrizione a SX">Restrizione a SX</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Suture</label>
+            <select id="f_sutures" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Suture libere/normotese">Suture libere/normotese</option>
+              <option value="Sovrapposizione suture">Sovrapposizione suture</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. PIETRE MILIARI -->
+      <div id="sec-4" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">4. Pietre Miliari dello Sviluppo</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">3 MESI</p>
+            <select id="f_mile_3" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">6 MESI</p>
+            <select id="f_mile_6" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">9 MESI</p>
+            <select id="f_mile_9" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">12 MESI</p>
+            <select id="f_mile_12" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Non valutato">— Non valutato —</option>
+              <option value="Raggiunto">Raggiunto</option>
+              <option value="Ritardo">Ritardo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. TUMMY TIME -->
+      <div id="sec-5" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">5. Guida Clinica al Tummy Time</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Pancia a Pancia</p>
+            <select id="f_tt_1" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Tollerato">Tollerato</option>
+              <option value="Fatica / Pianto">Fatica / Pianto</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Sulle Ginocchia</p>
+            <select id="f_tt_2" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Tollerato">Tollerato</option>
+              <option value="Fatica/Pianto">Fatica/Pianto</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Sottobraccio / Rullo</p>
+            <select id="f_tt_3" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Tollerato">Tollerato</option>
+              <option value="Fatica">Fatica</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">A Terra Libero</p>
+            <select id="f_tt_4" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Spinta simmetrica">Spinta simmetrica</option>
+              <option value="Deficit spinta">Deficit spinta</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. FRENULO -->
+      <div id="sec-6" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">6. Valutazione Frenulo (Ankiloglossia)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Frenulo Linguale</p>
+            <select id="f_fren_ling_type" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Fisiologico">Fisiologico</option>
+              <option value="Tipo I / II (Anteriore)">Tipo I / II (Anteriore)</option>
+              <option value="Tipo III / IV (Posteriore/Sottomucoso)">Tipo III / IV (Posteriore/Sottomucoso)</option>
+            </select>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p class="font-bold text-xs text-teal-900">Frenulo Labiale Superiore</p>
+            <select id="f_fren_lab" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-300 bg-white">
+              <option value="Fisiologico">Fisiologico</option>
+              <option value="Inserzione bassa / Grado III-IV">Inserzione bassa / Grado III-IV</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. HOME CARE -->
+      <div id="sec-7" class="form-section hidden bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm font-extrabold uppercase text-teal-800 border-b pb-2">7. Indicazioni Home Care</h3>
+        <div class="space-y-2.5">
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <input id="f_hc_1" type="checkbox" checked class="mt-1 w-5 h-5 accent-teal-600 rounded" />
+            <div class="text-xs"><span class="font-bold text-slate-900">Rilascio Addominale & Diaframmatico</span></div>
+          </label>
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <input id="f_hc_2" type="checkbox" checked class="mt-1 w-5 h-5 accent-teal-600 rounded" />
+            <div class="text-xs"><span class="font-bold text-slate-900">Allineamento Visivo & Rotazione Attiva</span></div>
+          </label>
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <input id="f_hc_3" type="checkbox" class="mt-1 w-5 h-5 accent-teal-600 rounded" />
+            <div class="text-xs"><span class="font-bold text-slate-900">Decompressione Sacrale Semplice</span></div>
+          </label>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Frequenza e Note Personalizzate</label>
+            <input id="f_hc_notes" type="text" placeholder="Es. 3 volte al giorno..." class="w-full px-3 py-2 rounded-xl border border-slate-300" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Salvataggio -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex gap-2">
+          <button onclick="prevSection()" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-xs text-slate-700">← Prec.</button>
+          <button onclick="nextSection()" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-xs text-slate-700">Succ. →</button>
+        </div>
+        <button onclick="saveCurrentPatient(true)" class="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow">
+          💾 Salva sul Cloud
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // CONFIGURAZIONE SUPABASE INSERITA AUTOMATICAMENTE
+    const SUPABASE_URL = 'https://jwsplfaqwnbzlniltinr.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Mj75d7zViRfCoNiGsJ3mQQ_pdgNAre2';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let sessionPin = sessionStorage.getItem('bleve_session_pin') || '';
+    let patients = [];
+    let currentPatientId = null;
+    let currentSection = 1;
+    let showAllSections = false;
+
+    function unlockApp() {
+      const entered = document.getElementById('pinInput').value.trim();
+      if (entered === '2025') {
+        sessionPin = entered;
+        sessionStorage.setItem('bleve_session_pin', sessionPin);
+        document.getElementById('pinScreen').classList.add('hidden');
+        document.getElementById('pinError').classList.add('hidden');
+        loadPatientsFromCloud();
+      } else {
+        document.getElementById('pinError').classList.remove('hidden');
+      }
+    }
+
+    function lockApp() {
+      sessionPin = '';
+      sessionStorage.removeItem('bleve_session_pin');
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinScreen').classList.remove('hidden');
+    }
+
+    async function loadPatientsFromCloud() {
+      try {
+        const { data, error } = await supabaseClient.from('patients').select('*').order('updated_at', { ascending: false });
+        if (error) throw error;
+        patients = (data || []).map(row => ({
+          id: row.id,
+          name: row.name,
+          evalDate: row.eval_date,
+          birthDate: row.birth_date,
+          age: row.age,
+          birthType: row.birth_type,
+          presentation: row.presentation,
+          anamnesi: row.anamnesi,
+          ...(row.data || {})
+        }));
+        renderPatientArchive();
+      } catch (err) {
+        console.warn('Errore caricamento Supabase:', err);
+      }
+    }
+
+    async function saveCurrentPatient(goHomeAfter) {
+      const p = collectFormData();
+      const payload = {
+        id: p.id,
+        name: p.name,
+        eval_date: p.evalDate || null,
+        birth_date: p.birthDate || null,
+        age: p.age,
+        birth_type: p.birthType,
+        presentation: p.presentation,
+        anamnesi: p.anamnesi,
+        data: p,
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        const { error } = await supabaseClient.from('patients').upsert(payload);
+        if (error) throw error;
+        await loadPatientsFromCloud();
+      } catch (err) {
+        alert('Errore di salvataggio sul cloud: ' + err.message);
+      }
+
+      if (goHomeAfter) showView('home');
+    }
+
+    async function deletePatient(id) {
+      if (!confirm('Vuoi davvero eliminare questa scheda?')) return;
+      try {
+        const { error } = await supabaseClient.from('patients').delete().eq('id', id);
+        if (error) throw error;
+        patients = patients.filter(x => x.id !== id);
+        renderPatientArchive();
+      } catch (err) {
+        alert('Errore durante l\'eliminazione');
+      }
+    }
+
+    function showView(view) {
+      document.getElementById('homeView').classList.toggle('hidden', view !== 'home');
+      document.getElementById('formView').classList.toggle('hidden', view !== 'form');
+      if (view === 'home') renderPatientArchive();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToSection(n) {
+      currentSection = n;
+      document.getElementById('mobileSectionSelect').value = String(n);
+      if (!showAllSections) {
+        for (let i = 1; i <= 7; i++) {
+          document.getElementById('sec-' + i).classList.toggle('hidden', i !== n);
+        }
+      }
+    }
+
+    function prevSection() { if (currentSection > 1) goToSection(currentSection - 1); }
+    function nextSection() { if (currentSection < 7) goToSection(currentSection + 1); }
+
+    function toggleShowAllSections() {
+      showAllSections = !showAllSections;
+      document.getElementById('toggleAllBtn').textContent = showAllSections ? 'Mostra Singola Sezione' : 'Mostra Tutte le 7 Sezioni';
+      for (let i = 1; i <= 7; i++) {
+        document.getElementById('sec-' + i).classList.toggle('hidden', !showAllSections && i !== currentSection);
+      }
+    }
+
+    function toggleCranialZone(zoneName) {
+      const input = document.getElementById('f_cranialZones');
+      let list = input.value ? input.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+      if (list.includes(zoneName)) list = list.filter(z => z !== zoneName);
+      else list.push(zoneName);
+      input.value = list.join(', ');
+    }
+
+    function autoCalcAge() {
+      const b = document.getElementById('f_birthDate').value;
+      if (!b) return;
+      const diffDays = Math.max(0, Math.floor((new Date() - new Date(b)) / (1000 * 60 * 60 * 24)));
+      document.getElementById('f_age').value = `${Math.floor(diffDays / 30)} mesi e ${diffDays % 30} giorni`;
+    }
+
+    function createNewPatient() {
+      currentPatientId = 'paz-' + Date.now();
+      document.getElementById('f_name').value = '';
+      document.getElementById('f_evalDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('f_birthDate').value = '';
+      document.getElementById('f_age').value = '';
+      document.getElementById('f_birthType').value = 'Fisiologico';
+      document.getElementById('f_presentation').value = 'Cefalica';
+      document.getElementById('f_anamnesi').value = '';
+      document.getElementById('f_cranialZones').value = '';
+      showView('form');
+      goToSection(1);
+    }
+
+    function openPatient(id) {
+      const p = patients.find(x => x.id === id);
+      if (!p) return;
+      currentPatientId = p.id;
+      document.getElementById('f_name').value = p.name || '';
+      document.getElementById('f_evalDate').value = p.evalDate || '';
+      document.getElementById('f_birthDate').value = p.birthDate || '';
+      document.getElementById('f_age').value = p.age || '';
+      document.getElementById('f_birthType').value = p.birthType || 'Fisiologico';
+      document.getElementById('f_presentation').value = p.presentation || 'Cefalica';
+      document.getElementById('f_anamnesi').value = p.anamnesi || '';
+      document.getElementById('f_ref_0_3').value = p.ref_0_3 || 'Presente / Simmetrico';
+      document.getElementById('f_ref_4_6').value = p.ref_4_6 || 'Scomparsa fisiologica';
+      document.getElementById('f_ref_7_12').value = p.ref_7_12 || 'Paracadute Presente';
+      document.getElementById('f_cranialZones').value = p.cranialZones || '';
+      document.getElementById('f_tone').value = p.tone || 'Normotono';
+      document.getElementById('f_cervical').value = p.cervical || 'Libera e simmetrica';
+      document.getElementById('f_sutures').value = p.sutures || 'Suture libere/normotese';
+      document.getElementById('f_mile_3').value = p.mile_3 || 'Non valutato';
+      document.getElementById('f_mile_6').value = p.mile_6 || 'Non valutato';
+      document.getElementById('f_mile_9').value = p.mile_9 || 'Non valutato';
+      document.getElementById('f_mile_12').value = p.mile_12 || 'Non valutato';
+      document.getElementById('f_tt_1').value = p.tt_1 || 'Tollerato';
+      document.getElementById('f_tt_2').value = p.tt_2 || 'Tollerato';
+      document.getElementById('f_tt_3').value = p.tt_3 || 'Tollerato';
+      document.getElementById('f_tt_4').value = p.tt_4 || 'Spinta simmetrica';
+      document.getElementById('f_fren_ling_type').value = p.fren_ling_type || 'Fisiologico';
+      document.getElementById('f_fren_lab').value = p.fren_lab || 'Fisiologico';
+      document.getElementById('f_hc_1').checked = !!p.hc_1;
+      document.getElementById('f_hc_2').checked = !!p.hc_2;
+      document.getElementById('f_hc_3').checked = !!p.hc_3;
+      document.getElementById('f_hc_notes').value = p.hc_notes || '';
+      showView('form');
+      goToSection(1);
+    }
+
+    function collectFormData() {
+      return {
+        id: currentPatientId || ('paz-' + Date.now()),
+        name: document.getElementById('f_name').value.trim() || 'Paziente Senza Nome',
+        evalDate: document.getElementById('f_evalDate').value,
+        birthDate: document.getElementById('f_birthDate').value,
+        age: document.getElementById('f_age').value,
+        birthType: document.getElementById('f_birthType').value,
+        presentation: document.getElementById('f_presentation').value,
+        anamnesi: document.getElementById('f_anamnesi').value,
+        ref_0_3: document.getElementById('f_ref_0_3').value,
+        ref_4_6: document.getElementById('f_ref_4_6').value,
+        ref_7_12: document.getElementById('f_ref_7_12').value,
+        cranialZones: document.getElementById('f_cranialZones').value,
+        tone: document.getElementById('f_tone').value,
+        cervical: document.getElementById('f_cervical').value,
+        sutures: document.getElementById('f_sutures').value,
+        mile_3: document.getElementById('f_mile_3').value,
+        mile_6: document.getElementById('f_mile_6').value,
+        mile_9: document.getElementById('f_mile_9').value,
+        mile_12: document.getElementById('f_mile_12').value,
+        tt_1: document.getElementById('f_tt_1').value,
+        tt_2: document.getElementById('f_tt_2').value,
+        tt_3: document.getElementById('f_tt_3').value,
+        tt_4: document.getElementById('f_tt_4').value,
+        fren_ling_type: document.getElementById('f_fren_ling_type').value,
+        fren_lab: document.getElementById('f_fren_lab').value,
+        hc_1: document.getElementById('f_hc_1').checked,
+        hc_2: document.getElementById('f_hc_2').checked,
+        hc_3: document.getElementById('f_hc_3').checked,
+        hc_notes: document.getElementById('f_hc_notes').value
+      };
+    }
+
+    function renderPatientArchive() {
+      const q = (document.getElementById('searchName')?.value || '').toLowerCase().trim();
+      const d = document.getElementById('searchDate')?.value || '';
+      const container = document.getElementById('patientListContainer');
+
+      const filtered = patients.filter(p => {
+        const matchName = !q || (p.name || '').toLowerCase().includes(q) || (p.anamnesi || '').toLowerCase().includes(q);
+        const matchDate = !d || p.evalDate === d;
+        return matchName && matchDate;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center text-slate-400 text-sm border border-slate-200">Nessun paziente in archivio. Premi "+ Nuovo Paziente" per iniziare.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(p => `
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-slate-900 text-base">${p.name}</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 font-semibold">${p.age || '0-12m'}</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Valutazione: <b>${p.evalDate || '-'}</b> • Parto: ${p.birthType || '-'}</p>
+            <p class="text-xs text-slate-600 mt-1">${p.anamnesi || 'Nessuna nota clinica'}</p>
+          </div>
+          <div class="flex flex-wrap gap-1.5 w-full sm:w-auto">
+            <button onclick="openPatient('${p.id}')" class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-teal-600 text-white font-bold text-xs">Apri / Modifica</button>
+            <button onclick="openPatient('${p.id}'); generatePDF('full')" class="px-3 py-2 rounded-xl bg-slate-800 text-white font-semibold text-xs">PDF</button>
+            <button onclick="deletePatient('${p.id}')" class="px-2.5 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function generatePDF(mode) {
+      const p = collectFormData();
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      doc.setFillColor(15, 118, 110);
+      doc.rect(0, 0, 210, 26, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.text('OSTEOPATIA BLEVE', 14, 12);
+      doc.setFontSize(10);
+      doc.text(mode === 'homecare' ? 'INDICAZIONI DI HOME CARE PER I GENITORI' : 'SCHEDA DI VALUTAZIONE NEURO-EVOLUTIVA E OSTEOPATICA (0-12 MESI)', 14, 19);
+
+      let y = 35;
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(11);
+      doc.text(`Paziente: ${p.name}   |   Data Valutazione: ${p.evalDate || '-'}   |   Età: ${p.age || '-'}`, 14, y);
+      y += 7;
+      doc.setFontSize(10);
+      doc.text(`Data Nascita: ${p.birthDate || '-'}   |   Parto: ${p.birthType}   |   Presentazione: ${p.presentation}`, 14, y);
+      y += 9;
+
+      const addBlock = (title, lines) => {
+        if (y > 265) { doc.addPage(); y = 20; }
+        doc.setFillColor(241, 245, 249);
+        doc.rect(14, y - 4, 182, 7, 'F');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 118, 110);
+        doc.text(title, 16, y + 1);
+        y += 8;
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(9.5);
+        lines.forEach(line => {
+          const split = doc.splitTextToSize(line, 178);
+          doc.text(split, 16, y);
+          y += split.length * 5;
+        });
+        y += 3;
+      };
+
+      if (mode === 'full') {
+        addBlock('1. ANAMNESI CLINICA & NOTE OSTEOPATICHE', [p.anamnesi || 'Nessuna nota.']);
+        addBlock('2. RIFLESSI ARCAICI E AUTOMATISMI', [`0-3 Mesi: ${p.ref_0_3}`, `4-6 Mesi: ${p.ref_4_6}`, `7-12 Mesi: ${p.ref_7_12}`]);
+        addBlock('3. TONO, POSTURA E MOBILITÀ CRANIO-CERVICALE', [`Tono: ${p.tone}  |  Cervicale C0-C1-C2: ${p.cervical}`, `Suture: ${p.sutures}`, `Mappa Disfunzioni: ${p.cranialZones || 'Nessuna'}`]);
+        addBlock('4. PIETRE MILIARI DELLO SVILUPPO', [`3 Mesi: ${p.mile_3}  |  6 Mesi: ${p.mile_6}`, `9 Mesi: ${p.mile_9}  |  12 Mesi: ${p.mile_12}`]);
+        addBlock('5. GUIDA CLINICA AL TUMMY TIME', [`Pancia a Pancia: ${p.tt_1}  |  Sulle Ginocchia: ${p.tt_2}`, `Sottobraccio: ${p.tt_3}  |  A Terra Libero: ${p.tt_4}`]);
+        addBlock('6. VALUTAZIONE FRENULO (ANKILOGLOSSIA)', [`Linguale: ${p.fren_ling_type}`, `Labiale Superiore: ${p.fren_lab}`]);
+      }
+
+      const hcList = [];
+      if (p.hc_1) hcList.push('• Rilascio Addominale & Diaframmatico');
+      if (p.hc_2) hcList.push('• Allineamento Visivo & Rotazione Attiva');
+      if (p.hc_3) hcList.push('• Decompressione Sacrale Semplice');
+      hcList.push(`Note: ${p.hc_notes || '-'}`);
+      addBlock('7. INDICAZIONI DI HOME CARE PER I GENITORI', hcList);
+
+      doc.save(`Scheda_Osteopatia_Bleve_${p.name.replace(/\s+/g, '_')}.pdf`);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (sessionPin) {
+        document.getElementById('pinInput').value = sessionPin;
+        unlockApp();
+      }
+    });
+  </script>
+</body>
+</html>
