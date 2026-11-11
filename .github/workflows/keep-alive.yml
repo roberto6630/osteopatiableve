@@ -1,0 +1,14 @@
+name: Keep Supabase Alive
+on:
+  schedule:
+    - cron: '0 10 */5 * *' # Esegue in automatico ogni 5 giorni alle 10:00
+  workflow_dispatch:
+jobs:
+  ping_database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invia richiesta a Supabase per azzerare il timer di inattività
+        run: |
+          curl -X GET 'https://jwsplfaqwnbzlniltinr.supabase.co/rest/v1/patients?select=id&limit=1' \
+          -H 'apikey: sb_publishable_Mj75d7zViRfCoNiGsJ3mQQ_pdgNAre2' \
+          -H 'Authorization: Bearer sb_publishable_Mj75d7zViRfCoNiGsJ3mQQ_pdgNAre2'
